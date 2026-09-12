@@ -39,6 +39,9 @@ async function main(): Promise<number> {
 
   const env: Record<string, string> = { ...getDefaultEnvironment() };
   if (process.env.INTERLOGUE_DATA_DIR) env.INTERLOGUE_DATA_DIR = process.env.INTERLOGUE_DATA_DIR;
+  // The phone path: forward only the ElevenLabs variables (loaded into this process by
+  // `node --env-file=.env`), never printed, never anything else from the shell.
+  for (const k of Object.keys(process.env)) if (k.startsWith("ELEVENLABS_") && process.env[k]) env[k] = process.env[k]!;
   const transport = new StdioClientTransport({ command: process.execPath, args: [SERVER], env, stderr: "pipe" });
   const client = new Client({ name: "interlogue-call-tool", version: "0.1.0" });
   await client.connect(transport);

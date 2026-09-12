@@ -59,6 +59,17 @@ in the cloned folder, then restart Claude Desktop.
 }
 ```
 
+Or let the repo write that entry for you. Claude Desktop rewrites its config from
+memory while it is running, so quit it fully first:
+
+```bash
+npm run register-desktop
+```
+
+It backs up the config, adds or refreshes only the `interlogue` entry (with the
+env-file flag when `.env` exists), and leaves every other entry alone. Relaunch
+Claude Desktop and the InterLogue tools appear.
+
 Claude Code: the repo ships a `.mcp.json`, so opening the folder registers the
 `interlogue` server after `npm run build`.
 
@@ -123,6 +134,8 @@ it can enforce mechanically:
 | `brief` | Persists the assignment brief and builds the question plan. Genre is fixed to customer case study. The angle marks which beats are high priority; those beats get their follow-up questions and lead the emphasis. |
 | `approve_contact` | Records a human's explicit approval of one specific name and one specific number against a brief. Requires `confirm: true`. This record is the only thing that can ever unlock a dial. |
 | `run_interview` | Text-only. Takes a fixture name or inline turns, refuses without an approval, refuses a transcript whose opening does not state the agent is an AI and ask permission to record, and stores the transcript append-only. |
+| `place_call` | Phone path, step 1. Refused without the approval record. Places one outbound call through the ElevenLabs agent over Twilio with the six dynamic variables from the brief. |
+| `fetch_transcript` | Phone path, step 2. Waits for the call to end, fetches and normalizes the transcript with real timestamps, runs the consent check, stores it append-only, records time and cost. |
 | `draft_piece` | Returns the reporter's packet for the host writer: brief, angle, question plan, writing contract, ranked verbatim quote candidates with timestamps, full transcript. |
 | `check_citations` | The fact-checker. With `brief_id` and `markdown`, validates a host-written piece and persists it only on a clean pass. With `piece_id`, re-checks a stored piece. |
 | `generate_piece` | Fallback writer. Assembles the piece deterministically from the transcript, runs the citation check, persists only on a pass. Used by `npm run spine`. |
@@ -143,8 +156,9 @@ it can enforce mechanically:
   the piece.
 - Transcripts are append-only. A piece is regenerated from its transcript, never the
   other way round.
-- Nothing dials in this build. The gate (`src/gate/dialGate.ts`) exists and is
-  exercised on every run.
+- One gate for every dial. `place_call` and the text path call the same
+  `assertDialApproved` in `src/gate/dialGate.ts`; there is no other way to reach the
+  outbound-call request.
 - Known limit: the approval is a record, not an identity check. There is no login,
   so `confirm: true` and `approved_by` are whatever the caller types. In the demo a
   human types them. A real deployment needs a human-only approval surface.
@@ -159,26 +173,71 @@ data/briefs/<brief_id>.json
 data/approvals/<brief_id>.json
 data/transcripts/<brief_id>.json      (append-only)
 data/pieces/<brief_id>_pc_<id>.json
+data/calls/<brief_id>.json            (conversation id, timing, cost, last four digits only)
 ```
 
 The fixture under `fixtures/` is fictional and committed. Every name, company and
 number in it is invented; the 555-01XX range is reserved for fiction.
 
-## What the phone path needs before it can start
+## The phone path
 
-Not part of this build. Nothing here reads or creates an env file.
+The phone path places a real call through an ElevenLabs agent over the native
+Twilio integration. It is two tools, because a live call outlasts one MCP tool call:
 
-- [ ] An ElevenLabs account with an Agent created, and its agent id.
-- [ ] The ElevenLabs API key.
-- [ ] A Twilio account, a purchased number, and the account SID and auth token.
-- [ ] The Twilio number imported into ElevenLabs under Phone Numbers, and its
-      ElevenLabs phone number id.
-- [ ] The agent's first message set to state it is an AI and ask permission to
-      record, and its prompt wired to read the brief from dynamic variables.
-- [ ] A consenting volunteer, and their name and number recorded with
-      `approve_contact` before any dial.
-- [ ] Those values placed in `app/.env` by a human, loaded with
-      `node --env-file=.env` so no dependency and no code ever prints them.
+1. `place_call` with `brief_id` and `confirm_dial: true`. Refused unless the same
+   dial gate as the text path finds a recorded approval for the brief's exact name
+   and number. It triggers the outbound call, passing six dynamic variables built
+   from the brief (`subject_name`, `subject_role`, `client_name`, `genre`, `angle`,
+   `question_plan`), records the conversation id under `data/calls/`, and returns.
+2. `fetch_transcript` with `brief_id`. Waits for the call to end, fetches the
+   conversation, normalizes it to one timestamped turn per entry, runs the consent
+   check on the real opening, and stores the transcript append-only. It records
+   wall-clock time from dial to transcript, call duration, and the cost ElevenLabs
+   reports. If the opening fails the consent check, it reports the opening verbatim
+   and stores nothing.
+
+From there the spine is the same: `draft_piece`, the host writes, `check_citations`.
+
+Credentials are read from the process environment only, never from a file by this
+code, and never printed. Put three values in `app/.env` and start the server with
+Node's built-in flag:
+
+```
+ELEVENLABS_API_KEY=...
+ELEVENLABS_AGENT_ID=...
+ELEVENLABS_PHONE_NUMBER_ID=...
+```
+
+```bash
+npm run start:phone
+```
+
+That runs `node --env-file=.env dist/src/index.js`. For Claude Desktop, use the same
+two arguments with absolute paths:
+
+```json
+{
+  "mcpServers": {
+    "interlogue": {
+      "command": "/absolute/path/to/node",
+      "args": [
+        "--env-file=/absolute/path/to/interlogue/.env",
+        "/absolute/path/to/interlogue/dist/src/index.js"
+      ]
+    }
+  }
+}
+```
+
+The agent itself is configured in ElevenLabs: its first message must state that it is
+an AI and ask permission to record, its prompt reads the six dynamic variables, and
+the Twilio number is imported under Phone Numbers. From a shell, the phone tools run
+through `npm run tool:phone -- <tool> '<json>'`, which loads the env file into the
+client and forwards only the ElevenLabs variables to the server.
+
+Endpoints used, verified against the ElevenLabs API reference:
+`POST /v1/convai/twilio/outbound-call` and `GET /v1/convai/conversations/{id}`,
+authenticated with the `xi-api-key` header.
 
 ## Layout
 
@@ -194,6 +253,8 @@ src/generate/reporter.ts     the deterministic fallback writer
 src/generate/citations.ts    the citation rule and re-check
 src/questionBank.ts          case-study question bank and angle weighting
 src/consent.ts               AI disclosure and recording-permission detection
+src/phone/elevenlabs.ts      ElevenLabs REST client (outbound call, conversation fetch)
+src/phone/normalize.ts       brief -> dynamic variables; conversation -> timestamped turns
 fixtures/                    the fictional text-only fixture
 scripts/run-spine.ts         end-to-end fallback runner over stdio
 scripts/call-tool.ts         generic one-tool client over stdio

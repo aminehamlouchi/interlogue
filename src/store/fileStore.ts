@@ -16,7 +16,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Approval, Brief, Piece, Transcript, Turn } from "../types.js";
+import type { Approval, Brief, CallRecord, Piece, Transcript, Turn } from "../types.js";
 
 // This file compiles to dist/src/store/fileStore.js: the package root is three levels up.
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -26,7 +26,7 @@ export const DATA_DIR: string = process.env.INTERLOGUE_DATA_DIR
   ? path.resolve(process.env.INTERLOGUE_DATA_DIR)
   : path.join(PACKAGE_ROOT, "data");
 
-type Kind = "briefs" | "approvals" | "transcripts" | "pieces";
+type Kind = "briefs" | "approvals" | "transcripts" | "pieces" | "calls";
 
 const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/;
 
@@ -202,4 +202,17 @@ export async function listPieces(briefId: string): Promise<PieceSummary[]> {
   }
   out.sort((a, b) => a.generated_at.localeCompare(b.generated_at) || a.piece_id.localeCompare(b.piece_id));
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Call records (one per brief, phone path)
+// ---------------------------------------------------------------------------
+
+export async function saveCall(record: CallRecord): Promise<void> {
+  assertSafeId(record.brief_id, "brief_id");
+  await writeJson("calls", record.brief_id, record);
+}
+
+export async function loadCall(briefId: string): Promise<CallRecord | null> {
+  return readJson<CallRecord>("calls", briefId);
 }

@@ -17,7 +17,9 @@ import * as checkCitations from "./tools/check_citations.js";
 import * as discoverContacts from "./tools/discover_contacts.js";
 import * as draftPiece from "./tools/draft_piece.js";
 import * as downloadRecording from "./tools/download_recording.js";
+import * as fetchTranscript from "./tools/fetch_transcript.js";
 import * as generatePiece from "./tools/generate_piece.js";
+import * as placeCall from "./tools/place_call.js";
 import * as questionTemplates from "./tools/question_templates.js";
 import * as runInterview from "./tools/run_interview.js";
 import * as status from "./tools/status.js";
@@ -26,6 +28,8 @@ const TOOLS = [
   brief,
   approveContact,
   runInterview,
+  placeCall,
+  fetchTranscript,
   draftPiece,
   checkCitations,
   generatePiece,

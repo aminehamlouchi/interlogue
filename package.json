@@ -17,7 +17,10 @@
     "spine": "npm run build && node dist/scripts/run-spine.js",
     "test": "npm run build && node --test dist/test/*.test.js",
     "clean": "rm -rf dist",
-    "tool": "node dist/scripts/call-tool.js"
+    "tool": "node dist/scripts/call-tool.js",
+    "start:phone": "node --env-file=.env dist/src/index.js",
+    "tool:phone": "node --env-file=.env dist/scripts/call-tool.js",
+    "register-desktop": "npm run build && node dist/scripts/register-desktop.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

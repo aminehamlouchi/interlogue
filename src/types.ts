@@ -135,6 +135,34 @@ export interface Approval {
 }
 
 // ---------------------------------------------------------------------------
+// Call record (phone path). One per brief. Never holds a full phone number.
+// ---------------------------------------------------------------------------
+
+export type CallStatus = "placed" | "transcript_stored" | "consent_failed" | "failed";
+
+export interface CallRecord {
+  brief_id: string;
+  conversation_id: string;
+  call_sid: string | null;
+  /** Last four digits only. The full number lives on the brief and the approval. */
+  to_number_last4: string;
+  placed_at: string; // ISO 8601
+  placed_under_approval: { approved_by: string; approved_at: string };
+  dynamic_variables: Record<string, string>;
+  status: CallStatus;
+  transcript_id?: string;
+  transcript_ready_at?: string;
+  /** Seconds from the place_call tool call to the transcript stored on disk. */
+  wall_clock_secs?: number;
+  call_duration_secs?: number;
+  /** Credits as reported by ElevenLabs conversation metadata. */
+  cost_credits?: number | null;
+  /** USD as reported by ElevenLabs conversation metadata (cost_fiat). */
+  cost_usd?: number | null;
+  last_error?: string;
+}
+
+// ---------------------------------------------------------------------------
 // Piece: story first, pull quotes second, per-question answers third
 // ---------------------------------------------------------------------------
 

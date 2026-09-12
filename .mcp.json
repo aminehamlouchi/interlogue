@@ -1,0 +1,1 @@
+{"mcpServers":{"interlogue":{"command":"node","args":["dist/src/index.js"]}}}

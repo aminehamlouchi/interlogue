@@ -1,0 +1,18 @@
+{
+  "fixture": "founder-case-study",
+  "note": "Fictional assignment brief for the text-only spine. No real people, companies or numbers. The 555-01XX range is reserved for fiction.",
+  "subject_name": "Marisol Teague",
+  "subject_phone": "+1-502-555-0142",
+  "subject_role": "founder",
+  "subject_company": "Ridgeline Provisions",
+  "client_company": "Tallyhook",
+  "client_product": "Tallyhook",
+  "topic": "order entry and fulfillment",
+  "angle": "a two-person team getting its Mondays back from manual, error-prone order entry",
+  "content_needed": ["customer case study", "pull quotes"],
+  "approval": {
+    "approved_by": "Amine Hamlouchi",
+    "consent_basis": "Fictional fixture subject. Stands in for a consenting volunteer who agreed in writing to be interviewed and recorded.",
+    "statement": "I approve InterLogue contacting Marisol Teague at +1-502-555-0142 for this brief."
+  }
+}

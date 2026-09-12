@@ -1,0 +1,30 @@
+{
+  "name": "interlogue",
+  "version": "0.1.0",
+  "description": "InterLogue: brief an AI reporter, it interviews the subject, and returns a published piece with every quote cited to a transcript timestamp. MCP server over stdio.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.10"
+  },
+  "main": "dist/src/index.js",
+  "bin": {
+    "interlogue": "dist/src/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/index.js",
+    "spine": "npm run build && node dist/scripts/run-spine.js",
+    "test": "npm run build && node --test dist/test/*.test.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "^5.9.3"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,137 @@
+{
+  "fixture": "founder-case-study",
+  "note": "Fictional ten-minute customer case study interview. Marisol Teague, founder of Ridgeline Provisions, a small specialty food wholesaler, interviewed on behalf of Tallyhook, an order-entry product. Every name, company and number is invented. The agent's opening turn states it is an AI and asks permission to record.",
+  "subject_name": "Marisol Teague",
+  "turns": [
+    {
+      "speaker": "agent",
+      "time_in_call_secs": 0,
+      "text": "Hi, is this Marisol? This is the InterLogue interviewer calling on behalf of the marketing team at Tallyhook. Before we get going, two things. I am an AI, not a person, and I would like to record this call so that anything we quote is accurate to what you actually said. Is it okay with you if we record?"
+    },
+    {
+      "speaker": "subject",
+      "time_in_call_secs": 14,
+      "text": "Yes, that's fine. Ahmad at Tallyhook said you would be calling. Go ahead."
+    },
+    {
+      "speaker": "agent",
+      "time_in_call_secs": 22,
+      "text": "Thanks. This should take about ten minutes, and you can stop me at any time. To start, can you tell me a bit about Ridgeline Provisions and what you do there?"
+    },
+    {
+      "speaker": "subject",
+      "time_in_call_secs": 31,
+      "text": "Sure. Ridgeline Provisions is a specialty food wholesaler. We buy from about forty small producers, mostly within a couple of hours of us, and we sell to restaurants and independent grocers. Cheese, cured meats, preserves, some produce in season. I started it six years ago out of the back of a van, honestly. Today it's me and my business partner Theo, plus two drivers who are part-time."
+    },
+    {
+      "speaker": "agent",
+      "time_in_call_secs": 68,
+      "text": "How big is the team day to day, and who handles the operations side?"
+    },
+    {
+      "speaker": "subject",
+      "time_in_call_secs": 75,
+      "text": "It's really just the two of us on the operations side. Theo runs the warehouse and the routes, and I do purchasing, sales, and until last year, all of the order entry. The drivers are on the road, they don't touch the office stuff. So when people say small team, I mean small. If one of us is sick, the other one is doing both jobs."
+    },
+    {
+      "speaker": "agent",
+      "time_in_call_secs": 104,
+      "text": "Before Tallyhook, how did Ridgeline handle order entry and fulfillment? Walk me through what a typical week looked like."
+    },
+    {
+      "speaker": "subject",
+      "time_in_call_secs": 112,
+      "text": "So orders came in every way you can imagine. Chefs would text me at eleven at night. Some of the grocers emailed a spreadsheet. A couple of the older restaurants literally called and read their order to me over the phone. And every single one of those I typed by hand into a Google Sheet. Monday was the worst, because everybody orders for the week on Sunday night. I'd sit down at six in the morning with maybe sixty orders across texts, emails and voicemails, and I'd be keying them in until lunch. Six hours, most Mondays, just typing. Then Theo would print the sheet and build the pick lists off it by hand."
+    },
+    {
+      "speaker": "agent",
+      "time_in_call_secs": 160,
+      "text": "What did that cost you, in time, money or mistakes?"
+    },
+    {
+      "speaker": "subject",
+      "time_in_call_secs": 166,
+      "text": "The time part I've already said, call it six hours every Monday, and probably another eight across the rest of the week. The mistakes are what actually hurt. If I misread a text and sent a restaurant two wheels of cheese instead of two wedges, that's a hundred and forty dollars of product on a truck going the wrong way, and a chef who is annoyed with us. We were doing that maybe three or four times a week. I sat down once and figured we were eating around two thousand dollars a month in wrong-order credits and wasted product. And I was working every Sunday night because I was scared of Monday."
+    },
+    {
+      "speaker": "agent",
+      "time_in_call_secs": 218,
+      "text": "What made you start looking for something different, and what else did you consider?"
+    },
+    {
+      "speaker": "subject",
+      "time_in_call_secs": 225,
+      "text": "There was a specific week last spring. I had the flu, Theo did the Monday entry, and he made a bunch of errors because he didn't know the customers' shorthand. We lost an account over it, a restaurant we'd had for four years. That was the week I said okay, this cannot depend on what is in my head. We looked at three things. One of the big enterprise systems, which quoted us something like eighteen thousand a year and wanted a six-month implementation. A generic inventory app that didn't really understand wholesale ordering. And Tallyhook, which a produce guy I know had mentioned."
+    },
+    {
+      "speaker": "agent",
+      "time_in_call_secs": 278,
+      "text": "Why did you pick Tallyhook in the end?"
+    },
+    {
+      "speaker": "subject",
+      "time_in_call_secs": 284,
+      "text": "Honestly, the customer-facing side. Tallyhook gave every customer a little order page, and it also reads the emails and the texts and turns them into orders that I approve instead of type. That was the thing. I didn't need to change how my chefs behave, because chefs are not going to change. They're still texting me at eleven at night. The difference is now it lands as a draft order that I glance at and tap yes. And the price was three hundred a month, which against two thousand a month in mistakes was not a hard conversation to have with Theo."
+    },
+    {
+      "speaker": "agent",
+      "time_in_call_secs": 330,
+      "text": "What did the first few weeks with Tallyhook actually look like?"
+    },
+    {
+      "speaker": "subject",
+      "time_in_call_secs": 336,
+      "text": "Messier than the sales pitch, I'll be honest. The first week I ran both systems side by side because I didn't trust it. I'd let Tallyhook draft the orders and then I'd check every one against what I would have typed. It caught two things I would have gotten wrong, and I caught one it got wrong, a customer who says 'the usual' and expects us to know. We set up a standing order for him and that was that. By the second week I stopped double-entering. By the third week Theo was pulling pick lists straight out of it and the printer in the warehouse had basically stopped running."
+    },
+    {
+      "speaker": "agent",
+      "time_in_call_secs": 390,
+      "text": "What has changed since? If you have numbers, I would love to hear them."
+    },
+    {
+      "speaker": "subject",
+      "time_in_call_secs": 397,
+      "text": "Monday order entry went from about six hours to about forty minutes. That's the one I tell people. Forty minutes, and most of that is me reading, not typing. Wrong-order credits went from around two thousand a month to under three hundred, and the ones we still get are usually the producer's fault, not ours. We've added eleven new accounts since the spring, which is more than we added in the two years before that, because I actually have time to go sell. And I don't work Sunday nights anymore. That one doesn't have a number on it, but it's the one that matters to me."
+    },
+    {
+      "speaker": "agent",
+      "time_in_call_secs": 450,
+      "text": "Is there a moment where you noticed the difference?"
+    },
+    {
+      "speaker": "subject",
+      "time_in_call_secs": 456,
+      "text": "Yeah. The second Monday after we switched, I finished the orders, looked at the clock, and it was seven fifteen in the morning. I actually thought something was broken. I went out to the warehouse to ask Theo if the orders had come through, and he already had the first truck half loaded. I stood there for a second and thought, we got our Mondays back. That's still how I describe it to people."
+    },
+    {
+      "speaker": "agent",
+      "time_in_call_secs": 494,
+      "text": "What would you tell another founder in your position who is weighing this?"
+    },
+    {
+      "speaker": "subject",
+      "time_in_call_secs": 500,
+      "text": "Don't wait for the disaster. I waited for the disaster, and the disaster cost me a four-year account. If you're the only person who can do the order entry, you don't have a process, you have a hostage situation, and the hostage is you. Also, run it side by side for a week if you're nervous. It costs you one extra week and you'll actually believe the numbers after that."
+    },
+    {
+      "speaker": "agent",
+      "time_in_call_secs": 540,
+      "text": "Is there anything you would want the Tallyhook team to hear, or anything I should have asked?"
+    },
+    {
+      "speaker": "subject",
+      "time_in_call_secs": 548,
+      "text": "Only that their support people actually answer the phone. And no, I think you got it."
+    },
+    {
+      "speaker": "agent",
+      "time_in_call_secs": 566,
+      "text": "That is everything I have. Thank you, Marisol. The Tallyhook team will send you the draft before anything is published, and nothing goes out without your okay."
+    },
+    {
+      "speaker": "subject",
+      "time_in_call_secs": 580,
+      "text": "Great, thanks. Bye now."
+    }
+  ]
+}

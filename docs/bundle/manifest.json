@@ -1,0 +1,75 @@
+{
+  "manifest_version": "0.3",
+  "name": "interlogue",
+  "display_name": "InterLogue",
+  "version": "0.1.0",
+  "description": "Brief it like a reporter. It interviews the subject and returns a case study with every quote cited to a transcript timestamp. Text-only path in this bundle; the phone path needs credentials that are not included.",
+  "long_description": "InterLogue is an MCP server. Brief it (brief), record a human approval of the exact person and number (approve_contact), run the interview on the built-in fictional fixture (run_interview), get the reporter's packet (draft_piece), write the piece in Claude, and check_citations publishes it only if every quoted span is verbatim from the subject at the cited timestamp. Story first, pull quotes with timestamps second, the verbatim per-question record third.",
+  "author": {
+    "name": "Amine Hamlouchi",
+    "url": "https://github.com/aminehamlouchi/interlogue"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aminehamlouchi/interlogue"
+  },
+  "homepage": "https://interloguemcp.com",
+  "license": "MIT",
+  "keywords": [
+    "interview",
+    "case study",
+    "journalism",
+    "citations",
+    "marketing"
+  ],
+  "server": {
+    "type": "node",
+    "entry_point": "dist/src/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/dist/src/index.js"
+      ]
+    }
+  },
+  "tools": [
+    {
+      "name": "brief",
+      "description": "Persist the assignment brief and build the question plan."
+    },
+    {
+      "name": "approve_contact",
+      "description": "Record a human's approval of one specific person and number."
+    },
+    {
+      "name": "run_interview",
+      "description": "Text-only interview from a fixture or inline turns; refuses without approval and consent."
+    },
+    {
+      "name": "draft_piece",
+      "description": "The reporter's packet for writing the piece, or INTERVIEW TOO THIN."
+    },
+    {
+      "name": "check_citations",
+      "description": "Fact-check a written piece; publishes only when every quote resolves."
+    },
+    {
+      "name": "generate_piece",
+      "description": "Fallback deterministic writer."
+    },
+    {
+      "name": "status",
+      "description": "Where a brief sits in the spine."
+    }
+  ],
+  "compatibility": {
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
+    "runtimes": {
+      "node": ">=20.10.0"
+    }
+  }
+}

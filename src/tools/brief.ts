@@ -8,6 +8,7 @@ import { z } from "zod";
 import { buildQuestionPlan, emphasisFromAngle } from "../questionBank.js";
 import { errorMessage, lastFour, refuse, reply } from "../respond.js";
 import { tokenize } from "../util.js";
+import { refuseCaseStudyBrief } from "../generate/briefRules.js";
 import { saveBrief } from "../store/fileStore.js";
 import { BEAT_ORDER, type Brief } from "../types.js";
 import { newId, normalizeWhitespace, nowIso } from "../util.js";
@@ -37,6 +38,12 @@ export function register(server: McpServer): void {
       inputSchema,
     },
     async (input) => {
+      const refusal = refuseCaseStudyBrief({
+        subject_company: input.subject_company,
+        client_company: input.client_company,
+        client_product: input.client_product,
+      });
+      if (refusal) return refuse(refusal);
       const emphasis = emphasisFromAngle(input.angle);
       const brief: Brief = {
         brief_id: newId("brf"),

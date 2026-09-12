@@ -47,7 +47,12 @@ export function quoteCandidates(brief: Brief, transcript: Transcript, limit = 18
     .sort((a, b) => b.score - a.score);
 }
 
-export function buildPacket(brief: Brief, transcript: Transcript): string {
+export interface PacketOptions {
+  /** Present when the interview graded thin and a human asked for the packet anyway. */
+  thin?: { reasons: string[]; beats_unanswered: string[]; substantive_words: number; quote_candidates: number };
+}
+
+export function buildPacket(brief: Brief, transcript: Transcript, opts: PacketOptions = {}): string {
   const out: string[] = [];
   const high = BEAT_ORDER.filter((b) => (brief.emphasis[b] ?? 0) >= 0.5);
   out.push(`# Reporter's packet: ${brief.subject.name}, ${brief.subject.role} of ${brief.subject.company}, for ${brief.client.company}`);
@@ -66,8 +71,21 @@ export function buildPacket(brief: Brief, transcript: Transcript): string {
   out.push("## Question plan (what the interviewer set out to ask)");
   for (const q of brief.question_plan) out.push(`- [${q.beat}, ${q.priority}${q.follow_up ? ", follow-up" : ""}] ${q.text}`);
   out.push("");
+  if (opts.thin) {
+    out.push("## Thin interview notice");
+    out.push("This interview graded below the story threshold and a human asked for the packet anyway.");
+    for (const r of opts.thin.reasons) out.push(`- ${r}`);
+    out.push(`Beats without a real answer: ${opts.thin.beats_unanswered.join(", ") || "none"}.`);
+    out.push("");
+  }
   out.push("## Writing contract");
   out.push(WRITING_CONTRACT);
+  if (opts.thin) {
+    out.push("");
+    out.push(
+      "8. CONTRACT ADDENDUM FOR A THIN INTERVIEW. The headline must say the interview was brief: it must contain the word \"brief\" or \"short\" together with \"interview\", \"call\" or \"conversation\", for example ending with \": a brief interview\". check_citations enforces this. Write only what was said; do not pad a short call into a long story.",
+    );
+  }
   out.push("");
   out.push("## Quote candidates (verbatim, ranked for the angle; each with its timestamp)");
   out.push("Use these or any other verbatim span from a subject turn below. Every quote you use must be followed by its (MM:SS).");

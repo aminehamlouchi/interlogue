@@ -131,12 +131,12 @@ it can enforce mechanically:
 
 | Tool | What it does |
 | --- | --- |
-| `brief` | Persists the assignment brief and builds the question plan. Genre is fixed to customer case study. The angle marks which beats are high priority; those beats get their follow-up questions and lead the emphasis. |
+| `brief` | Persists the assignment brief and builds the question plan. Genre is fixed to customer case study, so the subject must be a customer of the product at another company; a brief whose subject company is the client or the product is refused. The angle marks which beats are high priority; those beats get their follow-up questions and lead the emphasis. |
 | `approve_contact` | Records a human's explicit approval of one specific name and one specific number against a brief. Requires `confirm: true`. This record is the only thing that can ever unlock a dial. |
 | `run_interview` | Text-only. Takes a fixture name or inline turns, refuses without an approval, refuses a transcript whose opening does not state the agent is an AI and ask permission to record, and stores the transcript append-only. |
 | `place_call` | Phone path, step 1. Refused without the approval record. Places one outbound call through the ElevenLabs agent over Twilio with the six dynamic variables from the brief. |
 | `fetch_transcript` | Phone path, step 2. Waits for the call to end, fetches and normalizes the transcript with real timestamps, runs the consent check, stores it append-only, records time and cost. |
-| `draft_piece` | Returns the reporter's packet for the host writer: brief, angle, question plan, writing contract, ranked verbatim quote candidates with timestamps, full transcript. |
+| `draft_piece` | Grades the interview first and answers INTERVIEW TOO THIN when the subject said too little for a story (a human can override with `allow_thin`, and the headline must then say the interview was brief). Otherwise returns the reporter's packet: brief, angle, question plan, writing contract, ranked verbatim quote candidates with timestamps, full transcript. |
 | `check_citations` | The fact-checker. With `brief_id` and `markdown`, validates a host-written piece and persists it only on a clean pass. With `piece_id`, re-checks a stored piece. |
 | `generate_piece` | Fallback writer. Assembles the piece deterministically from the transcript, runs the citation check, persists only on a pass. Used by `npm run spine`. |
 | `status` | Where a brief sits in the spine and what to call next. |

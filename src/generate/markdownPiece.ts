@@ -23,6 +23,7 @@ import { newId, normalizeForMatch, nowIso, overlap, tokenize } from "../util.js"
 import { normQuote, quoteResolvesInTurn } from "./citations.js";
 import { renderFooter, renderQASection } from "./render.js";
 import { segmentTranscript } from "./segment.js";
+import { gradeInterview, headlineSaysBrief } from "./grade.js";
 
 export const HOST_WRITER = "host-writer/v1";
 
@@ -281,6 +282,17 @@ export function checkMarkdownPiece(markdown: string, brief: Brief, transcript: T
     const needle = normQuote(span.raw).toLowerCase();
     const ok = [...allCitations, ...pull_quotes].some((c) => normQuote(c.quote).toLowerCase().includes(needle));
     if (!ok) failures.push({ where: "headline", reason: "the headline quote must also appear inside a cited quote in the story or the pull quotes", quote: span.raw, hint: closestTurnHint(span.raw, transcript.turns) });
+  }
+
+  // A piece from a thin interview must say so in the headline.
+  const grade = gradeInterview(brief, transcript);
+  if (grade.thin && !headlineSaysBrief(headline)) {
+    checked++;
+    failures.push({
+      where: "headline",
+      reason: `this interview graded thin (${grade.reasons.join("; ")}); the headline must say the interview was brief, e.g. end with ": a brief interview"`,
+      quote: headline,
+    });
   }
 
   if (qaIdx >= 0) notes.push("A per-question section was submitted; it was replaced by the verbatim view generated from the transcript.");

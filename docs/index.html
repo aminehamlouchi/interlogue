@@ -4,152 +4,195 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>InterLogue</title>
-<meta name="description" content="InterLogue is an MCP tool inside Claude. Brief it like a reporter, it phones the subject, Claude writes, InterLogue fact-checks every quote against the transcript.">
+<meta name="description" content="Brief it like a reporter. It phones them and writes the story. InterLogue is an MCP tool inside Claude that interviews your customer by phone and returns a case study with every quote cited to a transcript timestamp.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap">
 <style>
   :root {
-    --ink: #111111;
-    --paper: #ffffff;
-    --muted: #3a3a3a;
-    --rule: #d6d6d6;
-    --wash: #f4f4f2;
-    --link: #0b3d91;
-    --focus: #ff7a00;
+    --bg: #000000;
+    --ink: #f5f5f5;
+    --muted: #bdbdbd;
+    --rule: #2a2a2a;
+    --panel: #0f0f0f;
+    --accent: #ffb86b;
+    --focus: #ffffff;
   }
   * { box-sizing: border-box; }
-  html { font-size: 20px; }
+  html { font-size: 18px; scroll-behavior: smooth; }
+  @media (min-width: 52rem) { html { font-size: 20px; } }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   body {
-    margin: 0;
-    background: var(--paper);
-    color: var(--ink);
-    font-family: Georgia, "Times New Roman", "Iowan Old Style", serif;
-    line-height: 1.55;
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.55; -webkit-font-smoothing: antialiased;
   }
-  .skip {
-    position: absolute; left: -999px; top: 0;
-    background: var(--ink); color: var(--paper); padding: .5rem 1rem;
-  }
-  .skip:focus { left: 1rem; top: 1rem; z-index: 10; }
-  header, main, footer { max-width: 44rem; margin: 0 auto; padding: 0 1.25rem; }
-  header { padding-top: 3rem; padding-bottom: 1rem; }
-  h1 { font-size: 3rem; line-height: 1.05; margin: 0 0 1rem; letter-spacing: -0.01em; }
-  h2 { font-size: 1.9rem; line-height: 1.15; margin: 3rem 0 1rem; border-top: 3px solid var(--ink); padding-top: 1rem; }
-  h3 { font-size: 1.3rem; margin: 1.75rem 0 .5rem; }
-  p { margin: 0 0 1rem; }
-  .lede { font-size: 1.5rem; line-height: 1.35; margin-bottom: .75rem; }
-  .sub { font-size: 1.25rem; color: var(--muted); }
-  a { color: var(--link); text-decoration: underline; text-underline-offset: .15em; text-decoration-thickness: .08em; }
+  a { color: var(--ink); text-decoration: underline; text-underline-offset: .18em; text-decoration-color: var(--accent); text-decoration-thickness: .08em; }
   a:hover { text-decoration-thickness: .16em; }
-  :focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; }
+  .skip { position: absolute; left: -999px; top: 0; background: var(--ink); color: var(--bg); padding: .6rem 1rem; z-index: 20; }
+  .skip:focus { left: 1rem; top: 1rem; }
+  .wrap { max-width: 64rem; margin: 0 auto; padding: 0 1.25rem; }
+  header.top { padding: 1.5rem 0 0; }
+  .wordmark { font-weight: 800; letter-spacing: -0.02em; font-size: 1.25rem; text-decoration: none; }
+  .hero { padding: 5rem 0 4rem; }
+  h1 { font-size: clamp(2.4rem, 7vw, 4.6rem); line-height: 1.02; letter-spacing: -0.03em; margin: 0 0 1.5rem; font-weight: 800; max-width: 22ch; }
+  .hero p.lede { font-size: 1.25rem; color: var(--muted); max-width: 40rem; margin: 0 0 2rem; }
+  .cta { display: flex; flex-wrap: wrap; gap: .9rem; align-items: center; margin-bottom: 1.25rem; }
+  .btn {
+    display: inline-block; padding: .9rem 1.4rem; border-radius: 999px; font-weight: 700; text-decoration: none;
+    background: var(--accent); color: #000; border: 2px solid var(--accent); font-size: 1.05rem;
+  }
+  .btn.secondary { background: transparent; color: var(--ink); border-color: var(--ink); }
+  .btn:hover { filter: brightness(1.08); }
+  .quiet { color: var(--muted); font-size: .95rem; margin: 0; }
+  section { padding: 4.5rem 0; border-top: 1px solid var(--rule); }
+  h2 { font-size: clamp(1.9rem, 4.5vw, 3rem); line-height: 1.08; letter-spacing: -0.02em; margin: 0 0 1.5rem; font-weight: 800; max-width: 24ch; }
+  h3 { font-size: 1.25rem; margin: 2rem 0 .75rem; font-weight: 700; }
+  p { margin: 0 0 1rem; }
+  .muted { color: var(--muted); }
   pre, code, kbd { font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; }
-  pre {
-    background: var(--wash);
-    border: 1px solid var(--rule);
-    padding: 1rem 1.1rem;
-    overflow-x: auto;
-    font-size: .85rem;
-    line-height: 1.5;
-    margin: 0 0 1.25rem;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-  code { font-size: .9em; background: var(--wash); padding: .05em .3em; }
+  pre { background: var(--panel); border: 1px solid var(--rule); padding: 1rem 1.1rem; overflow-x: auto; font-size: .82rem; line-height: 1.55; margin: 0 0 1.25rem; white-space: pre-wrap; word-break: break-word; color: var(--ink); }
+  code { background: var(--panel); padding: .1em .35em; border-radius: .25em; font-size: .92em; }
   pre code { background: none; padding: 0; font-size: inherit; }
-  .two { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  .urlbox { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; background: var(--panel); border: 1px solid var(--rule); padding: .9rem 1rem; margin: 0 0 1.5rem; }
+  .urlbox code { font-size: 1rem; background: none; padding: 0; word-break: break-all; }
+  .urlbox button { font: inherit; font-weight: 700; background: var(--ink); color: var(--bg); border: 2px solid var(--ink); border-radius: 999px; padding: .5rem 1rem; cursor: pointer; }
+  .urlbox button:hover { background: var(--accent); border-color: var(--accent); }
+  ol.steps { padding-left: 1.4rem; margin: 0 0 1.25rem; }
+  ol.steps li { margin-bottom: .6rem; }
+  .verify { border-left: 4px solid var(--accent); padding: .5rem 1rem; margin: 0 0 1.25rem; font-weight: 500; }
+  .two { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
   @media (min-width: 52rem) { .two { grid-template-columns: 1fr 1fr; } }
-  .block { border: 2px solid var(--ink); padding: 1rem 1.25rem; }
-  .block h3 { margin-top: 0; }
-  blockquote.paste {
-    margin: 0 0 1.25rem;
-    padding: 1rem 1.25rem;
-    border-left: 6px solid var(--ink);
-    background: var(--wash);
-    font-size: 1.05rem;
-  }
-  .piece { border: 2px solid var(--ink); padding: 1.5rem 1.5rem 1rem; margin-top: 1rem; }
-  .piece h3.headline { font-size: 1.7rem; line-height: 1.15; margin: 0 0 .5rem; }
+  .panel { border: 1px solid var(--rule); background: var(--panel); padding: 1.25rem 1.4rem; }
+  .panel h3 { margin-top: 0; }
+  blockquote.paste { margin: 0 0 1.25rem; padding: 1rem 1.25rem; border-left: 4px solid var(--accent); background: var(--panel); font-size: 1rem; }
+  .numbers { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem 1rem; }
+  @media (min-width: 52rem) { .numbers { grid-template-columns: repeat(4, 1fr); } }
+  .num { font-size: clamp(2.2rem, 6vw, 3.6rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1; margin: 0 0 .5rem; }
+  .num small { font-size: .5em; font-weight: 700; letter-spacing: 0; }
+  .label { color: var(--muted); font-size: .95rem; margin: 0; }
+  .strip { display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; align-items: baseline; font-weight: 700; font-size: 1.15rem; letter-spacing: -0.01em; }
+  .strip span { opacity: .92; }
+  .fiction { border: 1px dashed var(--muted); padding: .75rem 1rem; font-size: .95rem; margin: 0 0 1.25rem; color: var(--muted); }
+  .piece { border: 1px solid var(--rule); background: var(--panel); padding: 1.5rem 1.5rem 1rem; }
+  .piece h3.headline { font-size: 1.6rem; line-height: 1.15; margin: 0 0 .5rem; }
   .piece .dek { font-style: italic; margin-bottom: .25rem; }
   .piece .byline { color: var(--muted); font-size: .95rem; margin-bottom: 1.25rem; }
-  .piece h4 { font-size: 1.15rem; margin: 1.75rem 0 .75rem; text-transform: uppercase; letter-spacing: .06em; }
-  .piece blockquote { margin: 0 0 1rem; padding-left: 1rem; border-left: 4px solid var(--rule); }
+  .piece h4 { font-size: .95rem; margin: 1.75rem 0 .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .piece blockquote { margin: 0 0 1rem; padding-left: 1rem; border-left: 3px solid var(--accent); }
   .ts { color: var(--muted); font-size: .9em; }
-  details { border: 2px solid var(--ink); margin-top: 1rem; }
-  summary {
-    cursor: pointer; padding: .9rem 1.25rem; font-weight: bold; font-size: 1.1rem;
-    list-style: none;
-  }
+  details { border: 1px solid var(--rule); margin-top: 1rem; background: var(--bg); }
+  summary { cursor: pointer; padding: .9rem 1.1rem; font-weight: 700; font-size: 1.05rem; list-style: none; display: flex; justify-content: space-between; gap: 1rem; }
   summary::-webkit-details-marker { display: none; }
-  summary::before { content: "▸ "; }
-  details[open] summary::before { content: "▾ "; }
-  details > div { padding: 0 1.25rem 1rem; border-top: 1px solid var(--rule); }
-  .qa p.q { font-weight: bold; margin: 1.25rem 0 .35rem; }
+  summary::after { content: "+"; color: var(--accent); font-weight: 800; }
+  details[open] summary::after { content: "–"; }
+  details > div { padding: 0 1.1rem 1rem; border-top: 1px solid var(--rule); }
+  .qa p.q { font-weight: 700; margin: 1.25rem 0 .35rem; }
   .qa p.a { margin: 0 0 .25rem; }
   .qa p.at { color: var(--muted); font-size: .9rem; margin: 0; }
-  .fiction { background: var(--wash); border: 1px dashed var(--ink); padding: .75rem 1rem; font-size: 1rem; margin: 0 0 1rem; }
-  .rules { list-style: none; padding: 0; margin: 0; counter-reset: rule; }
-  .rules li { font-size: 1.3rem; line-height: 1.35; padding: 1rem 0 1rem 3.2rem; position: relative; border-bottom: 1px solid var(--rule); }
-  .rules li::before {
-    counter-increment: rule; content: counter(rule);
-    position: absolute; left: 0; top: .9rem;
-    width: 2.2rem; height: 2.2rem; border: 3px solid var(--ink); border-radius: 50%;
-    display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;
-  }
-  footer { margin-top: 4rem; padding-top: 1.5rem; padding-bottom: 3rem; border-top: 3px solid var(--ink); font-size: 1.05rem; }
-  footer p { margin-bottom: .5rem; }
-  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
-  @media print { details { border: none; } details > div { display: block; } }
+  .rules { list-style: none; padding: 0; margin: 0; }
+  .rules li { font-size: clamp(1.4rem, 3.4vw, 2.1rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; padding: 1.25rem 0; border-bottom: 1px solid var(--rule); }
+  .faq details { margin-top: .75rem; }
+  .faq details > div p { margin: .75rem 0 0; }
+  footer { border-top: 1px solid var(--rule); padding: 3rem 0 4rem; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  @media (min-width: 52rem) { .cols { grid-template-columns: repeat(4, 1fr); } }
+  footer h4 { font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 .75rem; }
+  footer ul { list-style: none; padding: 0; margin: 0; }
+  footer li { margin-bottom: .5rem; }
+  footer p.fine { color: var(--muted); font-size: .9rem; margin: 2.5rem 0 0; }
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
-<header>
-  <h1>InterLogue</h1>
-  <p class="lede">An MCP tool inside Claude that interviews your customer by phone and returns a publishable case study with every quote cited to a timestamp in the transcript.</p>
-  <p class="sub">Brief it like a reporter. It phones the subject. Claude writes. InterLogue fact-checks.</p>
+<header class="top">
+  <div class="wrap">
+    <a class="wordmark" href="#top" aria-label="InterLogue">InterLogue</a>
+  </div>
 </header>
 
 <main id="main">
-
-  <h2 id="add">Add it to Claude</h2>
-  <p>Nothing on this page needs credentials. The text-only path runs the whole spine on a fictional fixture. Requires Node 20 or newer.</p>
-  <div class="two">
-    <section class="block" aria-labelledby="desktop">
-      <h3 id="desktop">Claude Desktop</h3>
-      <p>Clone, install, build, then add this to <code>claude_desktop_config.json</code> and relaunch Claude Desktop.</p>
-<pre><code>{
-  "mcpServers": {
-    "interlogue": {
-      "command": "node",
-      "args": ["/absolute/path/to/interlogue/dist/src/index.js"]
-    }
-  }
-}</code></pre>
-      <p>Or let the repo write that entry for you, with Claude Desktop quit:</p>
-<pre><code>npm run register-desktop</code></pre>
-      <p><strong>One click, no terminal:</strong> <a href="interlogue.mcpb" download>download interlogue.mcpb</a> (3&nbsp;MB), open it with Claude Desktop, and confirm the install dialog. It carries the text-only server and the fixture, no credentials. Claude Desktop supplies the Node runtime.</p>
-    </section>
-    <section class="block" aria-labelledby="code">
-      <h3 id="code">Claude Code</h3>
-      <p>The repo ships a <code>.mcp.json</code>, so opening the folder registers the server after a build.</p>
-<pre><code>git clone https://github.com/aminehamlouchi/interlogue.git
-cd interlogue
-npm install
-npm run build</code></pre>
-      <p>No Claude at hand? One command runs the spine with the built-in fallback writer and prints the citation check:</p>
-<pre><code>npm run spine</code></pre>
-    </section>
+  <div class="wrap">
+    <div class="hero" id="top">
+      <h1>Brief it like a reporter.<br>It phones them and writes the story.</h1>
+      <p class="lede">An MCP tool inside Claude that interviews your customer by phone and returns a publishable case study with every quote cited to a timestamp in the transcript.</p>
+      <div class="cta">
+        <a class="btn" href="#add">Add to Claude →</a>
+        <a class="btn secondary" href="interlogue.mcpb" download>Download for Claude Desktop</a>
+      </div>
+      <p class="quiet">No account. No API key. Runs on a fictional fixture until you approve a real call.</p>
+    </div>
   </div>
 
-  <h3>Paste this brief into Claude</h3>
-  <blockquote class="paste">
-    <p>Use the InterLogue tools. Brief: subject Marisol Teague, founder of Ridgeline Provisions, phone +1-502-555-0142. Client Tallyhook, product Tallyhook. Topic: order entry and fulfillment. Angle: a two-person team getting its Mondays back from manual, error-prone order entry. I am a human and I approve contacting her at that number. Run the interview from the founder-case-study fixture, then get the reporter's packet, write the piece yourself following the contract, and submit it to check_citations until it passes. Show me the published piece.</p>
-  </blockquote>
-  <p>Claude then calls <code>brief</code>, <code>approve_contact</code>, <code>run_interview</code>, <code>draft_piece</code>, writes the piece, and <code>check_citations</code> publishes it only if every quote resolves.</p>
+  <section id="add" aria-labelledby="add-h">
+    <div class="wrap">
+      <h2 id="add-h">Add it to Claude in six steps.</h2>
+      <p class="muted">Copy the connector address, then follow the steps in claude.ai or Claude Desktop.</p>
+      <div class="urlbox">
+        <code id="connector-url">https://interlogue.onrender.com/mcp</code>
+        <button type="button" data-copy="connector-url" aria-label="Copy the connector address">Copy</button>
+      </div>
+      <ol class="steps">
+        <li>Open claude.ai or Claude Desktop, then Settings, then Connectors.</li>
+        <li>Choose Add custom connector.</li>
+        <li>Name it InterLogue and paste the address above.</li>
+        <li>Leave authentication empty and click Add.</li>
+        <li>Start a new chat with InterLogue switched on.</li>
+        <li>Paste the sample brief below and say the person may be contacted.</li>
+      </ol>
+      <p class="verify">You should see a piece with a timestamp on every quote.</p>
+      <p class="muted">The hosted server is a shared, text-only sandbox: use fictional names. Phone interviews need the Desktop install.</p>
 
-  <h2 id="produces">What it produces</h2>
-  <p class="fiction"><strong>Fictional fixture.</strong> Marisol Teague, Ridgeline Provisions and Tallyhook are invented. This is the piece Claude wrote from the repo's text fixture, exactly as InterLogue published it: story first, pull quotes with timestamps second, the verbatim per-question record third.</p>
+      <h3>The sample brief</h3>
+      <blockquote class="paste">
+        <p>Interview Marisol Teague, +1-502-555-0142, founder of Ridgeline Provisions, about switching her order entry to Tallyhook, for Tallyhook's marketing team. I approve contacting her at that number. Use the founder-case-study fixture instead of calling, then write the piece and show it to me.</p>
+      </blockquote>
 
-  <article class="piece" aria-labelledby="piece-headline">
+      <div class="panel" id="desktop">
+        <h3>Or install it in Claude Desktop</h3>
+        <ol class="steps">
+          <li><a href="interlogue.mcpb" download>Download interlogue.mcpb</a> (3.1 MB).</li>
+          <li>Double-click the file; Claude Desktop opens the install dialog.</li>
+          <li>Confirm. The InterLogue tools appear in the tools menu.</li>
+          <li>Paste the same brief.</li>
+        </ol>
+        <p class="muted" style="margin:0">Claude Desktop supplies the Node runtime. Nothing in the bundle needs credentials.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="numbers" aria-labelledby="numbers-h">
+    <div class="wrap">
+      <h2 id="numbers-h">One interview, measured.</h2>
+      <div class="numbers">
+        <div><p class="num">6<small> min </small>12<small> s</small></p><p class="label">From brief to published piece, in the rehearsal</p></div>
+        <div><p class="num">80¢</p><p class="label">Platform cost per ten minutes of call</p></div>
+        <div><p class="num">100%</p><p class="label">Of quotes cited to a transcript timestamp, or the piece does not publish</p></div>
+        <div><p class="num">58</p><p class="label">Tests, including tamper tests on quotes and timestamps</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="built" aria-labelledby="built-h">
+    <div class="wrap">
+      <h2 id="built-h">Built with</h2>
+      <div class="strip" role="list">
+        <span role="listitem">Claude</span>
+        <span role="listitem">Model Context Protocol</span>
+        <span role="listitem">ElevenLabs</span>
+        <span role="listitem">Twilio</span>
+        <span role="listitem">Node.js</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="piece" aria-labelledby="piece-h">
+    <div class="wrap">
+      <h2 id="piece-h">The story comes first. Every quote carries its timestamp.</h2>
+      <p class="fiction"><strong>Fictional fixture.</strong> Marisol Teague, Ridgeline Provisions and Tallyhook are invented. This is the piece Claude wrote from the repo's text fixture, exactly as InterLogue published it: story first, pull quotes with timestamps second, the verbatim per-question record third.</p>
+      <article class="piece" aria-labelledby="piece-headline">
     <h3 class="headline" id="piece-headline">“We got our Mondays back”: Ridgeline Provisions on the end of hand-typed orders</h3>
     <p class="dek">A customer case study with Marisol Teague, founder of Ridgeline Provisions, for Tallyhook.</p>
     <p class="byline">Reported by InterLogue from the text transcript of the interview. Every quote links to a timestamp in the transcript.</p>
@@ -238,43 +281,75 @@ npm run build</code></pre>
       </div>
     </details>
   </article>
+    </div>
+  </section>
 
-  <h2 id="refuses">What it refuses</h2>
-  <p>When the subject said too little for a story, <code>draft_piece</code> refuses to issue a writing contract, because a case study written from five non-answers is a per-question record dressed as a story.</p>
-<pre aria-label="INTERVIEW TOO THIN message"><code>INTERVIEW TOO THIN for a story. No writing contract issued.
-Subject: Zaid Bulbul, Due Gooder. Transcript trn_mtye9s447c661e: 02:29 long, 12 subject turns.
-Substantive subject words: 80 (minimum 120)
-Planned beats with a real answer of 15+ words: 2 of 7 (minimum 4)
-  answered: problem, decision
-  unanswered: context, search, implementation, results, reflection
-Quote candidates of 8+ words: 4 (minimum 6)
+  <section id="tells" aria-labelledby="tells-h">
+    <div class="wrap">
+      <h2 id="tells-h">What it tells you.</h2>
+      <p>InterLogue advises; it does not get in the way. Two notices you will see, as the tools print them today.</p>
+      <h3>When the interview was thin</h3>
+      <p class="muted">The interview is graded before the piece is written. A short or evasive call still gets its packet; the notice sits at the top and the headline must say the interview was brief. It is advice, not a block.</p>
+<pre aria-label="Thin interview notice as printed"><code>## Thin interview notice (advice, not a block)
+This interview graded below the story threshold. Write the piece anyway, keep it as short as the material, and say in the headline that the interview was brief. If the user wants more, the fix is a second interview asking the unanswered beats first.
+- substantive subject words 80, minimum 120
+- planned beats with a real answer 2 of 7, minimum 4
+- quote candidates of 8+ words 4, minimum 6
+Beats without a real answer: context, search, implementation, results, reflection.</code></pre>
+      <h3>When the subject is the founder</h3>
+      <p class="muted">A customer case study needs a customer at another company. When the subject's company is the client, the brief switches to a founder story and asks about what they built instead of "before the product". Nothing is refused; the plan changes.</p>
+<pre aria-label="Founder story brief result as printed"><code>BRIEF SAVED: brf_mtyo4ahx6acb2d
+Genre: founder story (the subject's company is the client, so the plan asks about what they built)
+Subject: Jane Doe, founder, a small bakery in Louisville (phone ending 0100)</code></pre>
+    </div>
+  </section>
 
-What this means: there is not enough said here to write a piece that leads with a story. Written up as a case study it would be a per-question record dressed as one, which is the failure this tool exists to prevent.
+  <section id="rules" aria-labelledby="rules-h">
+    <div class="wrap">
+      <h2 id="rules-h">Three rules.</h2>
+      <ol class="rules">
+        <li>A human approves every person and number before a dial.</li>
+        <li>The agent says it is an AI and asks to record before anything else.</li>
+        <li>Every quote resolves to a transcript timestamp, or the piece does not publish.</li>
+      </ol>
+    </div>
+  </section>
 
-Recommended, in this order:
-  1. Re-interview. Create a new brief for the same subject and ask the unanswered beats first: context, search, implementation, results, reflection. The transcript on file stays as it is.
-  2. Publish only the per-question record. The transcript is stored with every turn timestamped; it can be shown as the record of the call without a story on top.
-  3. If a piece must run anyway, call draft_piece again with allow_thin: true. The contract will then require the headline to say the interview was brief, and check_citations enforces it.</code></pre>
-
-  <p>When the brief names the subject's own company as the client, <code>brief</code> refuses before anything is saved, because a company interviewed about its own product is a founder story, not a customer case study.</p>
-<pre aria-label="BRIEF REFUSED message"><code>BRIEF REFUSED: the subject's company is the client.
-Subject company "Due Gooder" matches the client company "Due Gooder". A customer case study's subject must be a customer: a user of the product at a different company, whose story is about using it.
-Interviewing Due Gooder's own founder or team about Due Gooder is a founder story. That is a different genre and it is not in this build (see question_templates).
-Fix: name a customer of Due Gooder as the subject, with their own company, and keep Due Gooder as the client. Nothing was saved.
-Next: brief again with a customer as the subject.</code></pre>
-
-  <h2 id="rules">The rules</h2>
-  <ol class="rules">
-    <li>A human approves every person and number before a dial.</li>
-    <li>The agent states it is an AI and asks to record before anything else.</li>
-    <li>Every quote resolves to a transcript timestamp, or the piece does not publish.</li>
-  </ol>
-
+  <section id="faq" aria-labelledby="faq-h">
+    <div class="wrap faq">
+      <h2 id="faq-h">Questions.</h2>
+      <details><summary>Does it call anyone I name?</summary><div><p>No. A human records approval of the specific person and number first, in their own words, and nothing dials without that record. The hosted connector is text-only; real calls need the Desktop install and your own credentials.</p></div></details>
+      <details><summary>Does the subject know it is an AI?</summary><div><p>Yes. The agent says it is an AI and asks permission to record before it asks anything else. Any answer short of an explicit refusal counts as a yes, and an explicit refusal stops the piece.</p></div></details>
+      <details><summary>Can a quote be invented?</summary><div><p>No. Before a piece is stored, every quoted span is checked verbatim against the subject's words at the cited timestamp. A quote that does not resolve fails the check, and nothing is published until it does.</p></div></details>
+      <details><summary>What does an interview cost?</summary><div><p>About seven cents per minute of call as reported by the voice platform on our account, so under a dollar for ten minutes, against two hours of a marketer's time. The carrier's per-minute charge is separate.</p></div></details>
+      <details><summary>What happens if the interview is bad?</summary><div><p>The interview is graded before the piece is written. A thin one still gets written, as short as the material, with a headline that says the interview was brief, and the packet names the beats that went unanswered so a second interview can ask them first. Nothing goes public without a human review.</p></div></details>
+    </div>
+  </section>
 </main>
 
 <footer>
-  <p><a href="https://github.com/aminehamlouchi/interlogue">github.com/aminehamlouchi/interlogue</a></p>
-  <p>HackKentucky 2026. Built by Amine Hamlouchi and Ahmad Khalifa.</p>
+  <div class="wrap">
+    <div class="cols">
+      <div><h4>Product</h4><ul><li><a href="#add">Add to Claude</a></li><li><a href="interlogue.mcpb" download>Download for Claude Desktop</a></li></ul></div>
+      <div><h4>Source</h4><ul><li><a href="https://github.com/aminehamlouchi/interlogue">github.com/aminehamlouchi/interlogue</a></li></ul></div>
+      <div><h4>Site</h4><ul><li><a href="http://interloguemcp.com/">interloguemcp.com</a></li></ul></div>
+      <div><h4>Team</h4><ul><li>HackKentucky 2026</li><li>Amine Hamlouchi</li><li>Ahmad Khalifa</li></ul></div>
+    </div>
+    <p class="fine">InterLogue is an entry for the Prologue Stories bounty at HackKentucky 2026. Every quote in every piece links to a timestamp in the transcript.</p>
+  </div>
 </footer>
+
+<script>
+  // The only script on the page: copy the connector address. Without it, the address is still selectable.
+  document.querySelectorAll("button[data-copy]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var el = document.getElementById(b.getAttribute("data-copy"));
+      var text = el ? el.textContent : "";
+      var done = function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 1800); };
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(done, done); }
+      else { var r = document.createRange(); r.selectNodeContents(el); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); done(); }
+    });
+  });
+</script>
 </body>
 </html>

@@ -4,22 +4,31 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>InterLogue</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;800&display=swap">
 <meta name="description" content="Brief it like a reporter. It phones them and writes the story. InterLogue is an MCP tool inside Claude that interviews your customer by phone and returns a case study with every quote cited to a transcript timestamp.">
 <style>
   :root {
-    --bg: #09090b;
-    --bg-2: #101013;
-    --ink: #fafafa;
-    --muted: #b4b4bd;
-    --rule: #26262c;
-    --panel: #121216;
-    --accent: #c4b5fd;
-    --grad-a: #2563eb;
-    --grad-b: #7e22ce;
-    --glow-a: rgba(59, 130, 246, 0.2);
-    --glow-b: rgba(168, 85, 247, 0.18);
-    --glow-c: rgba(217, 70, 239, 0.1);
-    --focus: #ffffff;
+    /* InterLogue brand kit v6, dark mode: mint symbol, warm-white lettering, ink base. */
+    --bg: #0b1516;
+    --bg-2: #102d32;
+    --ink: #f6f3ec;
+    --muted: #b7c5c3;
+    --rule: #1f3438;
+    --panel: #102124;
+    --accent: #19e6c5;
+    --teal: #008c82;
+    --grad-a: #19e6c5;
+    --grad-b: #12b8a3;
+    --btn-ink: #102d32;
+    --glow-a: rgba(25, 230, 197, 0.16);
+    --glow-b: rgba(0, 140, 130, 0.28);
+    --glow-c: rgba(42, 183, 202, 0.12);
+    --focus: #f6f3ec;
     --radius: 14px;
   }
   * { box-sizing: border-box; }
@@ -27,7 +36,7 @@
   @media (min-width: 52rem) { html { font-size: 19px; } }
   body {
     margin: 0; background: var(--bg); color: var(--ink);
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: Montserrat, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     line-height: 1.55; -webkit-font-smoothing: antialiased; overflow-x: hidden;
   }
   a { color: var(--ink); text-decoration: underline; text-underline-offset: .18em; text-decoration-color: var(--accent); text-decoration-thickness: .08em; }
@@ -37,7 +46,9 @@
   .skip:focus { left: 1rem; top: 1rem; }
   .wrap { max-width: 64rem; margin: 0 auto; padding: 0 1.25rem; }
   header.top { position: relative; z-index: 2; padding: 1.25rem 0 0; }
-  .wordmark { font-weight: 800; letter-spacing: -0.03em; font-size: 1.2rem; text-decoration: none; }
+  .wordmark { display: inline-block; text-decoration: none; line-height: 0; }
+  .wordmark img { height: 2.2rem; width: auto; display: block; }
+  .hero-logo { display: block; margin: 0 auto 2rem; width: min(22rem, 70vw); height: auto; }
 
   /* Hero: centered statement, aurora behind, presence labels drifting. */
   .hero-wrap { position: relative; overflow: hidden; }
@@ -51,10 +62,10 @@
   @keyframes drift-a { from { transform: translate(0, 0) scale(1); } to { transform: translate(12vw, 6vh) scale(1.15); } }
   @keyframes drift-b { from { transform: translate(0, 0) scale(1.1); } to { transform: translate(-10vw, 10vh) scale(0.95); } }
   @keyframes drift-c { from { transform: translate(0, 0) scale(1); } to { transform: translate(-8vw, -8vh) scale(1.2); } }
-  .hero { position: relative; z-index: 1; padding: 5.5rem 0 5rem; text-align: center; min-height: 82dvh; display: flex; flex-direction: column; justify-content: center; }
+  .hero { position: relative; z-index: 1; padding: 3.5rem 0 5rem; text-align: center; min-height: 82dvh; display: flex; flex-direction: column; justify-content: center; }
   h1 {
     font-size: clamp(2.3rem, 5.4vw, 3.6rem); line-height: 1.04; letter-spacing: -0.045em; margin: 0 auto 1.4rem; font-weight: 800; max-width: 100%;
-    background: linear-gradient(to right, #ffffff, rgba(255, 255, 255, 0.82)); -webkit-background-clip: text; background-clip: text; color: transparent;
+    background: linear-gradient(to right, #f6f3ec, rgba(246, 243, 236, 0.82)); -webkit-background-clip: text; background-clip: text; color: transparent;
   }
   .hero p.lede { font-size: clamp(1.1rem, 2.2vw, 1.3rem); color: var(--muted); max-width: 38rem; margin: 0 auto 2rem; }
   .cta { display: flex; flex-direction: column; gap: .8rem; align-items: stretch; margin: 0 auto 1.25rem; max-width: 30rem; }
@@ -62,13 +73,13 @@
   .btn {
     position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: .6rem;
     padding: 1rem 1.6rem; border-radius: 999px; font-weight: 700; text-decoration: none; font-size: 1.05rem; white-space: nowrap;
-    background: linear-gradient(135deg, var(--grad-a), var(--grad-b)); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: 0 10px 40px rgba(88, 28, 135, 0.35);
+    background: linear-gradient(135deg, var(--grad-a), var(--grad-b)); color: var(--btn-ink); border: 1px solid rgba(25, 230, 197, 0.35);
+    box-shadow: 0 10px 40px rgba(0, 140, 130, 0.35);
     transition: transform .25s cubic-bezier(.16, 1, .3, 1), box-shadow .25s;
   }
-  .btn::after { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.14), transparent); animation: shimmer 2.4s ease-in-out infinite; pointer-events: none; }
+  .btn::after { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.22), transparent); animation: shimmer 2.4s ease-in-out infinite; pointer-events: none; }
   @keyframes shimmer { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
-  .btn:hover { transform: translateY(-1px); box-shadow: 0 14px 48px rgba(88, 28, 135, 0.5); }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 14px 48px rgba(0, 140, 130, 0.5); }
   .btn:active { transform: translateY(0) scale(.99); }
   .btn.secondary { background: transparent; color: var(--ink); border: 1px solid rgba(255, 255, 255, 0.35); box-shadow: none; }
   .btn.secondary::after { display: none; }
@@ -77,8 +88,8 @@
 
   /* Presence labels, the reference's drifting cursors, drawn in CSS. */
   .presence { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
-  .tag { position: absolute; display: inline-flex; align-items: center; gap: .35rem; font-size: .8rem; font-weight: 700; color: #ffffff;
-    background: linear-gradient(135deg, var(--grad-a), var(--grad-b)); padding: .3rem .6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,.18); box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+  .tag { position: absolute; display: inline-flex; align-items: center; gap: .35rem; font-size: .8rem; font-weight: 700;
+    background: var(--accent); color: var(--btn-ink); padding: .3rem .6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,.18); box-shadow: 0 6px 20px rgba(0,0,0,.4); }
   .tag::before { content: ""; position: absolute; left: -9px; top: -9px; width: 0; height: 0; border-left: 10px solid #ffffff; border-bottom: 10px solid transparent; transform: rotate(0deg); }
   .tag.t1 { left: 4%; top: 14%; animation: float-1 14s ease-in-out infinite alternate; }
   .tag.t2 { right: 5%; top: 18%; animation: float-2 17s ease-in-out infinite alternate; }
@@ -112,7 +123,7 @@
   .numbers { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem 1.25rem; }
   @media (min-width: 52rem) { .numbers { grid-template-columns: repeat(4, 1fr); } }
   .num { font-size: clamp(2.3rem, 6vw, 3.8rem); font-weight: 800; letter-spacing: -0.045em; line-height: 1; margin: 0 0 .5rem;
-    background: linear-gradient(135deg, #ffffff, var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    background: linear-gradient(135deg, #f6f3ec, var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .num small { font-size: .5em; font-weight: 700; letter-spacing: 0; }
   .label { color: var(--muted); font-size: .95rem; margin: 0; }
   .strip { display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; align-items: baseline; font-weight: 700; font-size: 1.15rem; letter-spacing: -0.02em; color: var(--muted); }
@@ -156,7 +167,7 @@
 
 <header class="top">
   <div class="wrap">
-    <a class="wordmark" href="#top" aria-label="InterLogue">InterLogue</a>
+    <a class="wordmark" href="#top"><img src="brand/header-compact-dark.svg" alt="InterLogue" width="245" height="60"></a>
   </div>
 </header>
 
@@ -170,6 +181,7 @@
     </div>
   <div class="wrap">
     <div class="hero" id="top">
+      <img class="hero-logo" src="brand/logo-horizontal-dark.svg" alt="InterLogue" width="675" height="200">
       <h1>Brief it like a reporter.<br>It phones them and writes the story.</h1>
       <p class="lede">An MCP tool inside Claude that interviews your customer by phone and returns a publishable case study with every quote cited to a timestamp in the transcript.</p>
       <div class="cta">

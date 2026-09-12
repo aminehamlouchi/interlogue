@@ -22,7 +22,7 @@ Requires Node 20 or newer. No env file, no API keys.
 ### Path 1: one command, no Claude needed (the fallback writer)
 
 ```bash
-git clone <repo-url> interlogue && cd interlogue && npm install && npm run spine
+git clone https://github.com/aminehamlouchi/interlogue.git interlogue && cd interlogue && npm install && npm run spine
 ```
 
 `npm run spine` builds the server, starts it over stdio, and drives the tools in order

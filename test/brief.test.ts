@@ -65,3 +65,11 @@ test("a sentence that says how many questions cuts the plan to the beats the ang
   assert.ok(plan.some((q) => q.beat === "results"));
   assert.ok(plan.every((q) => !q.follow_up));
 });
+
+test("question counts and call instructions do not leak into topic or angle, and business roles are recognised", async () => {
+  const r = inferBrief({ subject_name: "Ahmed Khalifa", about: "business development at InterLogue, about the hackathon build, three questions, and call him now" });
+  assert.equal(r.subject_role, "business development");
+  assert.equal(r.subject_company, "InterLogue");
+  assert.equal(r.topic, "the hackathon build");
+  assert.ok(!/questions|call him/.test(r.angle), r.angle);
+});

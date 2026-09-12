@@ -28,7 +28,20 @@ export interface InferredBrief {
 }
 
 const ROLE_WORDS =
-  "founder|co-founder|cofounder|ceo|cto|coo|cfo|owner|co-owner|president|director|board member|partner|principal|head of [a-z]+(?: [a-z]+)?|vp of [a-z]+|[a-z]+ manager|manager|engineer|developer|designer|chef|baker|farmer|teacher|nurse|doctor|lawyer|consultant|coach|organizer|student";
+  "founder|co-founder|cofounder|ceo|cto|coo|cfo|owner|co-owner|president|director|board member|partner|principal|head of [a-z]+(?: [a-z]+)?|vp of [a-z]+|[a-z]+ manager|manager|engineer|developer|designer|chef|baker|farmer|teacher|nurse|doctor|lawyer|consultant|coach|organizer|student|business development|sales|marketing|operations|growth|product|customer success|support";
+
+/** Instructions to the tool that are not about the person: how many questions, and to call now. */
+const CONTROL_PHRASES = [
+  /,?\s*\b(?:\d{1,2}|one|two|three|four|five|six)\s+questions?(?:\s+only|\s+max)?\b/gi,
+  /,?\s*\b(?:and\s+)?(?:please\s+)?(?:call|phone|ring|dial)\s+(?:him|her|them|me)(?:\s+(?:now|right now|today|live))?\b/gi,
+  /,?\s*\b(?:and\s+)?(?:do it|start|go)\s+now\b/gi,
+];
+
+export function stripControlPhrases(about: string): string {
+  let out = about;
+  for (const re of CONTROL_PHRASES) out = out.replace(re, "");
+  return out.replace(/\s+,/g, ",").replace(/,\s*,/g, ",").replace(/\s+/g, " ").replace(/[\s,]+$/g, "").trim();
+}
 
 const NAMEISH = "[A-Z][\\w&'.-]*(?:\\s+(?:of|the|and|&)\\s+[A-Z][\\w&'.-]*|\\s+[A-Z][\\w&'.-]*)*";
 
@@ -37,7 +50,7 @@ function clean(s: string): string {
 }
 
 export function inferBrief(input: InferInput): InferredBrief {
-  const about = clean(input.about);
+  const about = clean(stripControlPhrases(input.about));
   const chosen: string[] = [];
 
   // Role and company: "founder of Ridgeline Provisions", "who runs a bakery", "at Acme".

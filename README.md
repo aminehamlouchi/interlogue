@@ -194,7 +194,10 @@ Twilio integration. It is two tools, because a live call outlasts one MCP tool c
    check on the real opening, and stores the transcript append-only. It records
    wall-clock time from dial to transcript, call duration, and the cost ElevenLabs
    reports. If the opening fails the consent check, it reports the opening verbatim
-   and stores nothing.
+   and stores nothing. Each call waits up to about three minutes and answers
+   STILL IN PROGRESS if the interview is still running; the host calls it again,
+   so a ten-minute interview needs about four calls. If a host cancels a wait early,
+   the next call for that brief automatically stays under that limit.
 
 From there the spine is the same: `draft_piece`, the host writes, `check_citations`.
 

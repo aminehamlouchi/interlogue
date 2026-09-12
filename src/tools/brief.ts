@@ -7,6 +7,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { buildQuestionPlan, emphasisFromAngle } from "../questionBank.js";
 import { errorMessage, lastFour, refuse, reply } from "../respond.js";
+import { tokenize } from "../util.js";
 import { saveBrief } from "../store/fileStore.js";
 import { BEAT_ORDER, type Brief } from "../types.js";
 import { newId, normalizeWhitespace, nowIso } from "../util.js";
@@ -70,8 +71,15 @@ export function register(server: McpServer): void {
         (q, i) => `  ${i + 1}. ${q.id} [${q.beat}, ${q.priority}${q.follow_up ? ", follow-up" : ""}] ${q.text}`,
       );
 
+      const productTokens = new Set(tokenize(brief.client.product));
+      const topicHitsProduct = tokenize(brief.topic).some((t) => productTokens.has(t));
+      const topicNote = topicHitsProduct
+        ? `NOTE: the topic mentions the product, so the question "Before ${brief.client.product}, how did ${brief.subject.company} handle ${brief.topic}?" will sound odd on the call. Prefer a topic that names the process itself, for example "order entry" rather than "order entry with ${brief.client.product}". Re-run brief to change it.`
+        : "";
+
       return reply([
         `BRIEF SAVED: ${brief.brief_id}`,
+        topicNote,
         `brief_id: ${brief.brief_id}`,
         `Subject: ${brief.subject.name}, ${brief.subject.role}, ${brief.subject.company} (phone ${lastFour(brief.subject.phone)})`,
         `Client: ${brief.client.company} / product ${brief.client.product}`,

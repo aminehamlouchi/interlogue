@@ -16,7 +16,8 @@
     "start": "node dist/src/index.js",
     "spine": "npm run build && node dist/scripts/run-spine.js",
     "test": "npm run build && node --test dist/test/*.test.js",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "tool": "node dist/scripts/call-tool.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

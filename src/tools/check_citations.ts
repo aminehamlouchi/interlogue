@@ -1,88 +1,126 @@
 /**
- * Tool: check_citations. Step 5 of the spine.
- * Re-runs the citation check on a saved piece against its transcript and
- * reports where every quote resolves.
+ * Tool: check_citations. The fact-checker, and the only path by which a
+ * host-written piece is persisted.
+ *
+ * Two modes:
+ *  - piece_id: re-run the citation check on a stored piece.
+ *  - brief_id + markdown: validate a host-written piece (section order, every
+ *    quoted span verbatim from a subject turn at the cited timestamp, no
+ *    numbers outside quotes, no repeated frames). On a clean pass the
+ *    per-question view is appended verbatim and the piece is persisted.
+ *    On a fail, every failing span comes back with the closest turn, and
+ *    nothing is persisted.
  */
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { checkCitations } from "../generate/citations.js";
+import { checkMarkdownPiece } from "../generate/markdownPiece.js";
 import { errorMessage, refuse, reply } from "../respond.js";
-import { loadPiece, loadTranscript } from "../store/fileStore.js";
-import type { CitationFailure, CitationResolved, Piece } from "../types.js";
+import { loadBrief, loadPiece, loadTranscript, savePiece } from "../store/fileStore.js";
+import type { CitationFailure, CitationReport } from "../types.js";
 
 const inputSchema = {
-  piece_id: z.string().min(1).describe("The piece_id returned by generate_piece."),
+  piece_id: z.string().min(1).optional().describe("Re-check a stored piece by id. Give either piece_id, or brief_id plus markdown."),
+  brief_id: z.string().min(1).optional().describe("With markdown: the brief whose transcript the piece was written from."),
+  markdown: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("With brief_id: the host-written piece. H1 headline, prose story, then '## Pull quotes' with one '> “quote” (MM:SS)' per line. The per-question view is appended for you."),
 };
 
-function clip(s: string, n = 60): string {
-  return s.length > n ? `${s.slice(0, n)}…` : s;
+function failureLines(failures: CitationFailure[]): string[] {
+  return failures.map((f) => {
+    const loc = f.timestamp ? ` @ ${f.timestamp}` : "";
+    const q = f.quote ? `: “${f.quote.length > 120 ? `${f.quote.slice(0, 120)}…` : f.quote}”` : "";
+    return `- ${f.where}${loc}: ${f.reason}${q}${f.hint ? `\n    ${f.hint}` : ""}`;
+  });
+}
+
+function resolvedLines(report: CitationReport): string[] {
+  return report.resolved.map((r) => `- ${r.where} @ ${r.timestamp} (turn ${r.turn_index}): "${r.quote.length > 60 ? `${r.quote.slice(0, 60)}…` : r.quote}"`);
 }
 
 export function register(server: McpServer): void {
   server.registerTool(
     "check_citations",
     {
-      title: "Check every quote against the transcript",
+      title: "Fact-check a piece against its transcript",
       description:
-        "Independent check of a saved piece: every quoted span in the story and every pull quote must be a verbatim span of the cited subject turn at the cited timestamp. " +
-        "Reports each resolved quote with its timestamp and turn, and lists any failure. Use it before sharing a draft.",
+        "Validates that every quoted span resolves to a subject turn at the cited timestamp. " +
+        "With piece_id it re-checks a stored piece. With brief_id and markdown it checks a host-written piece: section order " +
+        "(story, then pull quotes), every quote verbatim and timestamped, no numbers outside quotes, no repeated frames. " +
+        "A clean pass persists the piece as a draft for human review and returns its piece_id. A fail returns every failing span " +
+        "with the closest matching turn so you can fix and resubmit; nothing is persisted on a fail.",
       inputSchema,
     },
     async (input) => {
-      let piece: Piece;
-      try {
-        piece = await loadPiece(input.piece_id);
-      } catch (e) {
-        return refuse(["CITATION CHECK NOT RUN: no such piece", errorMessage(e), "Next: generate_piece, then check_citations with the returned piece_id."]);
-      }
-
-      const transcript = await loadTranscript(piece.brief_id);
-      if (!transcript) {
+      const markdownMode = input.markdown !== undefined || input.brief_id !== undefined;
+      if ((input.piece_id && markdownMode) || (!input.piece_id && !(input.brief_id && input.markdown))) {
         return refuse([
-          "CITATION CHECK NOT RUN: transcript missing",
-          `Piece ${piece.piece_id} cites transcript ${piece.transcript_id} for brief ${piece.brief_id}, but no transcript is stored for that brief.`,
-          `Next: status with brief_id ${piece.brief_id}.`,
-        ]);
-      }
-      if (transcript.transcript_id !== piece.transcript_id) {
-        return refuse([
-          "CITATION CHECK NOT RUN: transcript mismatch",
-          `Piece ${piece.piece_id} cites transcript ${piece.transcript_id} but the stored transcript for brief ${piece.brief_id} is ${transcript.transcript_id}.`,
-          `Next: generate_piece with brief_id ${piece.brief_id} to regenerate from the stored transcript.`,
+          "CHECK REFUSED: give either piece_id, or brief_id plus markdown",
+          "piece_id re-checks a stored piece. brief_id plus markdown checks and, on a clean pass, publishes a host-written piece.",
         ]);
       }
 
-      const report = checkCitations({ story: piece.story, pull_quotes: piece.pull_quotes }, transcript);
-      const resolvedLines = report.resolved.map(
-        (r: CitationResolved) => `- ${r.where} @ ${r.timestamp} (turn ${r.turn_index}): "${clip(r.quote)}"`,
-      );
-
-      if (report.ok) {
+      if (input.piece_id) {
+        let piece;
+        try {
+          piece = await loadPiece(input.piece_id);
+        } catch (e) {
+          return refuse(["CHECK REFUSED: no such piece", errorMessage(e)]);
+        }
+        const transcript = await loadTranscript(piece.brief_id);
+        if (!transcript) return refuse(["CHECK REFUSED: the piece's transcript is missing", `brief_id ${piece.brief_id} has no stored transcript.`]);
+        if (transcript.transcript_id !== piece.transcript_id) {
+          return refuse(["CHECK REFUSED: transcript mismatch", `The piece cites transcript ${piece.transcript_id} but the stored transcript is ${transcript.transcript_id}.`]);
+        }
+        const report = checkCitations({ story: piece.story, pull_quotes: piece.pull_quotes }, transcript);
+        if (!report.ok) {
+          return refuse([`CITATION CHECK FAILED: ${report.failures.length} failures across ${report.checked} checks`, `piece_id: ${piece.piece_id}`, ...failureLines(report.failures)]);
+        }
         return reply([
           `CITATIONS OK: ${report.resolved.length} of ${report.resolved.length} citations resolve to a subject turn at the cited timestamp (${report.checked} checks, including every quoted span and timestamp in the prose)`,
-          `piece_id: ${piece.piece_id} · transcript_id: ${transcript.transcript_id} · brief_id: ${piece.brief_id}`,
-          ...resolvedLines,
+          `piece_id: ${piece.piece_id} · transcript_id: ${transcript.transcript_id} · brief_id: ${piece.brief_id} · writer: ${piece.writer}`,
+          ...resolvedLines(report),
           "",
           "Next: the draft is ready for human review. Nothing public ships without it.",
         ]);
       }
 
-      const failureLines = report.failures.map(
-        (f: CitationFailure) =>
-          `- ${f.where}: ${f.reason}` +
-          (f.turn_index !== undefined ? ` (turn ${f.turn_index}${f.timestamp ? ` @ ${f.timestamp}` : ""})` : "") +
-          `\n  quote: "${clip(f.quote, 120)}"`,
-      );
-      return refuse([
-        `CITATION CHECK FAILED: ${report.failures.length} failures across ${report.checked} checks`,
-        `piece_id: ${piece.piece_id} · transcript_id: ${transcript.transcript_id} · brief_id: ${piece.brief_id}`,
-        "Failures:",
-        ...failureLines,
-        report.resolved.length > 0 ? "Resolved:" : null,
-        ...resolvedLines,
+      // ---- markdown mode
+      let brief;
+      try {
+        brief = await loadBrief(input.brief_id!);
+      } catch (e) {
+        return refuse(["CHECK REFUSED: no such brief", errorMessage(e)]);
+      }
+      const transcript = await loadTranscript(brief.brief_id);
+      if (!transcript) return refuse(["CHECK REFUSED: no transcript for this brief", `Next: run_interview with brief_id ${brief.brief_id}.`]);
+
+      const result = checkMarkdownPiece(input.markdown!, brief, transcript);
+      if (!result.ok || !result.piece) {
+        return refuse([
+          `CITATION CHECK FAILED: ${result.report.failures.length} failures across ${result.report.checked} checks. Nothing was persisted.`,
+          "Fix each item below and resubmit the whole piece to check_citations.",
+          ...failureLines(result.report.failures),
+          ...(result.notes.length ? ["", ...result.notes] : []),
+        ]);
+      }
+
+      await savePiece(result.piece);
+      const r = result.report;
+      return reply([
+        `CITATIONS OK: ${r.resolved.length} of ${r.resolved.length} quoted spans resolve to a subject turn at the cited timestamp (${r.checked} checks). Piece persisted as a draft.`,
+        `piece_id: ${result.piece.piece_id} · transcript_id: ${transcript.transcript_id} · brief_id: ${brief.brief_id} · writer: ${result.piece.writer}`,
+        ...resolvedLines(r),
+        ...(result.notes.length ? ["", ...result.notes] : []),
         "",
-        "A quote without a timestamp is a bug. Do not share this draft.",
-        `Next: generate_piece with brief_id ${piece.brief_id} to regenerate from the transcript.`,
+        "PUBLISHED PIECE (draft, with the per-question view appended):",
+        "",
+        result.piece.markdown,
+        "",
+        "Next: the draft is ready for human review. Nothing public ships without it.",
       ]);
     },
   );

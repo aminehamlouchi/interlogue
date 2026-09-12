@@ -15,6 +15,7 @@ import * as approveContact from "./tools/approve_contact.js";
 import * as brief from "./tools/brief.js";
 import * as checkCitations from "./tools/check_citations.js";
 import * as discoverContacts from "./tools/discover_contacts.js";
+import * as draftPiece from "./tools/draft_piece.js";
 import * as downloadRecording from "./tools/download_recording.js";
 import * as generatePiece from "./tools/generate_piece.js";
 import * as questionTemplates from "./tools/question_templates.js";
@@ -25,8 +26,9 @@ const TOOLS = [
   brief,
   approveContact,
   runInterview,
-  generatePiece,
+  draftPiece,
   checkCitations,
+  generatePiece,
   status,
   discoverContacts,
   questionTemplates,

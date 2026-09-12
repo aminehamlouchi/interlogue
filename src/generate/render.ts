@@ -2,7 +2,7 @@
  * Render a piece as markdown in the mandated order and no other:
  * story, then pull quotes, then per-question answers as a secondary view.
  */
-import type { Piece } from "../types.js";
+import type { CitationReport, Piece, QABlock } from "../types.js";
 
 export function renderMarkdown(p: Omit<Piece, "markdown">, subjectName: string): string {
   const out: string[] = [];
@@ -22,10 +22,18 @@ export function renderMarkdown(p: Omit<Piece, "markdown">, subjectName: string):
     out.push("");
   }
 
+  out.push(renderQASection(p.qa, subjectName));
+  out.push(renderFooter(p.citation_check));
+  return out.join("\n");
+}
+
+/** The per-question view, verbatim from the transcript. Always the third section. */
+export function renderQASection(qa: QABlock[], subjectName: string): string {
+  const out: string[] = [];
   out.push("## Per-question answers (secondary view)");
   out.push("");
-  const consent = p.qa.filter((b) => b.beat === "consent");
-  const rest = p.qa.filter((b) => b.beat !== "consent");
+  const consent = qa.filter((b) => b.beat === "consent");
+  const rest = qa.filter((b) => b.beat !== "consent");
   for (const b of rest) {
     out.push(`**${b.question}** (${b.question_timestamp})`);
     out.push("");
@@ -45,9 +53,12 @@ export function renderMarkdown(p: Omit<Piece, "markdown">, subjectName: string):
     }
   }
 
-  out.push("---");
-  const cc = p.citation_check;
-  out.push(cc.ok ? `Citation check: OK, ${cc.resolved.length} quotes resolved to transcript timestamps.` : `Citation check: FAILED (${cc.failures.length} failures).`);
-  out.push("");
   return out.join("\n");
+}
+
+export function renderFooter(cc: CitationReport): string {
+  const line = cc.ok
+    ? `Citation check: OK, ${cc.resolved.length} quotes resolved to transcript timestamps.`
+    : `Citation check: FAILED (${cc.failures.length} failures).`;
+  return `---\n${line}\n`;
 }

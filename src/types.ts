@@ -140,8 +140,13 @@ export interface Approval {
 
 /** A verbatim quote tied to one subject turn. */
 export interface Citation {
-  /** Verbatim substring of the cited turn's text (whitespace-normalized). */
+  /**
+   * Verbatim substring of the cited turn's text (whitespace-normalized). A quote
+   * may elide with a single ellipsis, in which case each fragment is verbatim and
+   * they appear in order within the same turn; `elided` is then true.
+   */
   quote: string;
+  elided?: boolean;
   turn_index: number;
   timestamp: string;
   time_in_call_secs: number;
@@ -163,7 +168,7 @@ export interface Story {
 }
 
 export interface PullQuote extends Citation {
-  beat: Beat;
+  beat: Beat | "other";
 }
 
 export interface QABlock {
@@ -185,6 +190,8 @@ export interface CitationFailure {
   quote: string;
   turn_index?: number;
   timestamp?: string;
+  /** For host-written pieces: the closest subject turn, so the writer can fix and resubmit. */
+  hint?: string;
 }
 
 export interface CitationResolved {

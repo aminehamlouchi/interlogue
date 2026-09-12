@@ -19,9 +19,10 @@ export function register(server: McpServer): void {
   server.registerTool(
     "generate_piece",
     {
-      title: "Generate the piece from the transcript",
+      title: "Fallback writer: generate the piece deterministically",
       description:
-        "Writes the customer case study from the saved transcript: the story first, pull quotes second, per-question answers third. " +
+        "FALLBACK writer, used when no host is writing (for example `npm run spine`). Inside Claude, prefer draft_piece then check_citations, " +
+        "where the host writes the prose. This tool assembles the customer case study deterministically from the saved transcript: the story first, pull quotes second, per-question answers third. " +
         "Every quote is a verbatim span of a subject turn and carries its transcript timestamp; the piece is saved only if the citation check passes. " +
         "Regenerate any time; the transcript is never edited to fit a piece. Next step: check_citations.",
       inputSchema,

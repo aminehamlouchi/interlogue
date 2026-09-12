@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>InterLogue</title>
+<meta name="description" content="InterLogue is an MCP tool inside Claude. Brief it like a reporter, it phones the subject, Claude writes, InterLogue fact-checks every quote against the transcript.">
+<style>
+  :root {
+    --ink: #111111;
+    --paper: #ffffff;
+    --muted: #3a3a3a;
+    --rule: #d6d6d6;
+    --wash: #f4f4f2;
+    --link: #0b3d91;
+    --focus: #ff7a00;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: 20px; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Georgia, "Times New Roman", "Iowan Old Style", serif;
+    line-height: 1.55;
+  }
+  .skip {
+    position: absolute; left: -999px; top: 0;
+    background: var(--ink); color: var(--paper); padding: .5rem 1rem;
+  }
+  .skip:focus { left: 1rem; top: 1rem; z-index: 10; }
+  header, main, footer { max-width: 44rem; margin: 0 auto; padding: 0 1.25rem; }
+  header { padding-top: 3rem; padding-bottom: 1rem; }
+  h1 { font-size: 3rem; line-height: 1.05; margin: 0 0 1rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.9rem; line-height: 1.15; margin: 3rem 0 1rem; border-top: 3px solid var(--ink); padding-top: 1rem; }
+  h3 { font-size: 1.3rem; margin: 1.75rem 0 .5rem; }
+  p { margin: 0 0 1rem; }
+  .lede { font-size: 1.5rem; line-height: 1.35; margin-bottom: .75rem; }
+  .sub { font-size: 1.25rem; color: var(--muted); }
+  a { color: var(--link); text-decoration: underline; text-underline-offset: .15em; text-decoration-thickness: .08em; }
+  a:hover { text-decoration-thickness: .16em; }
+  :focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
+  pre, code, kbd { font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; }
+  pre {
+    background: var(--wash);
+    border: 1px solid var(--rule);
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    font-size: .85rem;
+    line-height: 1.5;
+    margin: 0 0 1.25rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  code { font-size: .9em; background: var(--wash); padding: .05em .3em; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .two { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 52rem) { .two { grid-template-columns: 1fr 1fr; } }
+  .block { border: 2px solid var(--ink); padding: 1rem 1.25rem; }
+  .block h3 { margin-top: 0; }
+  blockquote.paste {
+    margin: 0 0 1.25rem;
+    padding: 1rem 1.25rem;
+    border-left: 6px solid var(--ink);
+    background: var(--wash);
+    font-size: 1.05rem;
+  }
+  .piece { border: 2px solid var(--ink); padding: 1.5rem 1.5rem 1rem; margin-top: 1rem; }
+  .piece h3.headline { font-size: 1.7rem; line-height: 1.15; margin: 0 0 .5rem; }
+  .piece .dek { font-style: italic; margin-bottom: .25rem; }
+  .piece .byline { color: var(--muted); font-size: .95rem; margin-bottom: 1.25rem; }
+  .piece h4 { font-size: 1.15rem; margin: 1.75rem 0 .75rem; text-transform: uppercase; letter-spacing: .06em; }
+  .piece blockquote { margin: 0 0 1rem; padding-left: 1rem; border-left: 4px solid var(--rule); }
+  .ts { color: var(--muted); font-size: .9em; }
+  details { border: 2px solid var(--ink); margin-top: 1rem; }
+  summary {
+    cursor: pointer; padding: .9rem 1.25rem; font-weight: bold; font-size: 1.1rem;
+    list-style: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "▸ "; }
+  details[open] summary::before { content: "▾ "; }
+  details > div { padding: 0 1.25rem 1rem; border-top: 1px solid var(--rule); }
+  .qa p.q { font-weight: bold; margin: 1.25rem 0 .35rem; }
+  .qa p.a { margin: 0 0 .25rem; }
+  .qa p.at { color: var(--muted); font-size: .9rem; margin: 0; }
+  .fiction { background: var(--wash); border: 1px dashed var(--ink); padding: .75rem 1rem; font-size: 1rem; margin: 0 0 1rem; }
+  .rules { list-style: none; padding: 0; margin: 0; counter-reset: rule; }
+  .rules li { font-size: 1.3rem; line-height: 1.35; padding: 1rem 0 1rem 3.2rem; position: relative; border-bottom: 1px solid var(--rule); }
+  .rules li::before {
+    counter-increment: rule; content: counter(rule);
+    position: absolute; left: 0; top: .9rem;
+    width: 2.2rem; height: 2.2rem; border: 3px solid var(--ink); border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;
+  }
+  footer { margin-top: 4rem; padding-top: 1.5rem; padding-bottom: 3rem; border-top: 3px solid var(--ink); font-size: 1.05rem; }
+  footer p { margin-bottom: .5rem; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+  @media print { details { border: none; } details > div { display: block; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header>
+  <h1>InterLogue</h1>
+  <p class="lede">An MCP tool inside Claude that interviews your customer by phone and returns a publishable case study with every quote cited to a timestamp in the transcript.</p>
+  <p class="sub">Brief it like a reporter. It phones the subject. Claude writes. InterLogue fact-checks.</p>
+</header>
+
+<main id="main">
+
+  <h2 id="add">Add it to Claude</h2>
+  <p>Nothing on this page needs credentials. The text-only path runs the whole spine on a fictional fixture. Requires Node 20 or newer.</p>
+  <div class="two">
+    <section class="block" aria-labelledby="desktop">
+      <h3 id="desktop">Claude Desktop</h3>
+      <p>Clone, install, build, then add this to <code>claude_desktop_config.json</code> and relaunch Claude Desktop.</p>
+<pre><code>{
+  "mcpServers": {
+    "interlogue": {
+      "command": "node",
+      "args": ["/absolute/path/to/interlogue/dist/src/index.js"]
+    }
+  }
+}</code></pre>
+      <p>Or let the repo write that entry for you, with Claude Desktop quit:</p>
+<pre><code>npm run register-desktop</code></pre>
+    </section>
+    <section class="block" aria-labelledby="code">
+      <h3 id="code">Claude Code</h3>
+      <p>The repo ships a <code>.mcp.json</code>, so opening the folder registers the server after a build.</p>
+<pre><code>git clone https://github.com/aminehamlouchi/interlogue.git
+cd interlogue
+npm install
+npm run build</code></pre>
+      <p>No Claude at hand? One command runs the spine with the built-in fallback writer and prints the citation check:</p>
+<pre><code>npm run spine</code></pre>
+    </section>
+  </div>
+
+  <h3>Paste this brief into Claude</h3>
+  <blockquote class="paste">
+    <p>Use the InterLogue tools. Brief: subject Marisol Teague, founder of Ridgeline Provisions, phone +1-502-555-0142. Client Tallyhook, product Tallyhook. Topic: order entry and fulfillment. Angle: a two-person team getting its Mondays back from manual, error-prone order entry. I am a human and I approve contacting her at that number. Run the interview from the founder-case-study fixture, then get the reporter's packet, write the piece yourself following the contract, and submit it to check_citations until it passes. Show me the published piece.</p>
+  </blockquote>
+  <p>Claude then calls <code>brief</code>, <code>approve_contact</code>, <code>run_interview</code>, <code>draft_piece</code>, writes the piece, and <code>check_citations</code> publishes it only if every quote resolves.</p>
+
+  <h2 id="produces">What it produces</h2>
+  <p class="fiction"><strong>Fictional fixture.</strong> Marisol Teague, Ridgeline Provisions and Tallyhook are invented. This is the piece Claude wrote from the repo's text fixture, exactly as InterLogue published it: story first, pull quotes with timestamps second, the verbatim per-question record third.</p>
+
+  <article class="piece" aria-labelledby="piece-headline">
+    <h3 class="headline" id="piece-headline">“We got our Mondays back”: Ridgeline Provisions on the end of hand-typed orders</h3>
+    <p class="dek">A customer case study with Marisol Teague, founder of Ridgeline Provisions, for Tallyhook.</p>
+    <p class="byline">Reported by InterLogue from the text transcript of the interview. Every quote links to a timestamp in the transcript.</p>
+
+    <p>Marisol Teague is the founder of Ridgeline Provisions. “Ridgeline Provisions is a specialty food wholesaler. We buy from about forty small producers, mostly within a couple of hours of us, and we sell to restaurants and independent grocers,” Teague said. <span class="ts">(00:31)</span> The operation is small, and Teague does not dress that up. “It's really just the two of us on the operations side. Theo runs the warehouse and the routes, and I do purchasing, sales, and until last year, all of the order entry.” <span class="ts">(01:15)</span> “So when people say small team, I mean small. If one of us is sick, the other one is doing both jobs.” <span class="ts">(01:15)</span></p>
+
+    <p>Ask about the old process and what comes back is a description of Mondays. “So orders came in every way you can imagine. Chefs would text me at eleven at night. Some of the grocers emailed a spreadsheet. A couple of the older restaurants literally called and read their order to me over the phone. And every single one of those I typed by hand into a Google Sheet.” <span class="ts">(01:52)</span> Then the worst day of the week: “Monday was the worst, because everybody orders for the week on Sunday night. I'd sit down at six in the morning with maybe sixty orders across texts, emails and voicemails, and I'd be keying them in until lunch. Six hours, most Mondays, just typing.” <span class="ts">(01:52)</span></p>
+
+    <p>The hours were only part of it. “The mistakes are what actually hurt. If I misread a text and sent a restaurant two wheels of cheese instead of two wedges, that's a hundred and forty dollars of product on a truck going the wrong way, and a chef who is annoyed with us,” Teague said. <span class="ts">(02:46)</span> The arithmetic had been done. “I sat down once and figured we were eating around two thousand dollars a month in wrong-order credits and wasted product. And I was working every Sunday night because I was scared of Monday.” <span class="ts">(02:46)</span></p>
+
+    <p>The turning point was a specific week, and Teague tells it in order. “There was a specific week last spring. I had the flu, Theo did the Monday entry, and he made a bunch of errors because he didn't know the customers' shorthand. We lost an account over it, a restaurant we'd had for four years. That was the week I said okay, this cannot depend on what is in my head.” <span class="ts">(03:45)</span> The search that followed is told just as briskly. “We looked at three things. One of the big enterprise systems, which quoted us something like eighteen thousand a year and wanted a six-month implementation. A generic inventory app that didn't really understand wholesale ordering. And Tallyhook, which a produce guy I know had mentioned.” <span class="ts">(03:45)</span></p>
+
+    <p>The reason Teague gives for the choice is not a feature list. “Honestly, the customer-facing side. Tallyhook gave every customer a little order page, and it also reads the emails and the texts and turns them into orders that I approve instead of type. That was the thing. I didn't need to change how my chefs behave, because chefs are not going to change. They're still texting me at eleven at night. The difference is now it lands as a draft order that I glance at and tap yes.” <span class="ts">(04:44)</span> On price: “And the price was three hundred a month, which against two thousand a month in mistakes was not a hard conversation to have with Theo.” <span class="ts">(04:44)</span></p>
+
+    <p>Teague is candid about the first weeks. “Messier than the sales pitch, I'll be honest. The first week I ran both systems side by side because I didn't trust it. I'd let Tallyhook draft the orders and then I'd check every one against what I would have typed. It caught two things I would have gotten wrong, and I caught one it got wrong, a customer who says 'the usual' and expects us to know.” <span class="ts">(05:36)</span> “By the second week I stopped double-entering. By the third week Theo was pulling pick lists straight out of it and the printer in the warehouse had basically stopped running.” <span class="ts">(05:36)</span></p>
+
+    <p>The result Teague leads with is a number. “Monday order entry went from about six hours to about forty minutes. That's the one I tell people. Forty minutes, and most of that is me reading, not typing,” Teague said. <span class="ts">(06:37)</span> The rest follow. “Wrong-order credits went from around two thousand a month to under three hundred, and the ones we still get are usually the producer's fault, not ours. We've added eleven new accounts since the spring, which is more than we added in the two years before that, because I actually have time to go sell. And I don't work Sunday nights anymore. That one doesn't have a number on it, but it's the one that matters to me.” <span class="ts">(06:37)</span></p>
+
+    <p>There is also a moment, and it is the one in the headline. “The second Monday after we switched, I finished the orders, looked at the clock, and it was seven fifteen in the morning. I actually thought something was broken. I went out to the warehouse to ask Theo if the orders had come through, and he already had the first truck half loaded. I stood there for a second and thought, we got our Mondays back. That's still how I describe it to people.” <span class="ts">(07:36)</span></p>
+
+    <p>Teague's advice to another founder starts with the cost of waiting. “Don't wait for the disaster. I waited for the disaster, and the disaster cost me a four-year account. If you're the only person who can do the order entry, you don't have a process, you have a hostage situation, and the hostage is you. Also, run it side by side for a week if you're nervous. It costs you one extra week and you'll actually believe the numbers after that.” <span class="ts">(08:20)</span></p>
+
+    <h4>Pull quotes</h4>
+    <blockquote>“Six hours, most Mondays, just typing.” <span class="ts">(01:52)</span></blockquote>
+    <blockquote>“I sat down once and figured we were eating around two thousand dollars a month in wrong-order credits and wasted product.” <span class="ts">(02:46)</span></blockquote>
+    <blockquote>“I didn't need to change how my chefs behave, because chefs are not going to change.” <span class="ts">(04:44)</span></blockquote>
+    <blockquote>“Monday order entry went from about six hours to about forty minutes. That's the one I tell people.” <span class="ts">(06:37)</span></blockquote>
+    <blockquote>“I stood there for a second and thought, we got our Mondays back.” <span class="ts">(07:36)</span></blockquote>
+    <blockquote>“If you're the only person who can do the order entry, you don't have a process, you have a hostage situation, and the hostage is you.” <span class="ts">(08:20)</span></blockquote>
+
+    <details>
+      <summary>Verbatim record: per-question answers</summary>
+      <div class="qa">
+        <p class="q">Thanks. This should take about ten minutes, and you can stop me at any time. To start, can you tell me a bit about Ridgeline Provisions and what you do there? <span class="ts">(00:22)</span></p>
+        <p class="a">Sure. Ridgeline Provisions is a specialty food wholesaler. We buy from about forty small producers, mostly within a couple of hours of us, and we sell to restaurants and independent grocers. Cheese, cured meats, preserves, some produce in season. I started it six years ago out of the back of a van, honestly. Today it's me and my business partner Theo, plus two drivers who are part-time.</p>
+        <p class="at">Answer at 00:31</p>
+
+        <p class="q">How big is the team day to day, and who handles the operations side? <span class="ts">(01:08)</span></p>
+        <p class="a">It's really just the two of us on the operations side. Theo runs the warehouse and the routes, and I do purchasing, sales, and until last year, all of the order entry. The drivers are on the road, they don't touch the office stuff. So when people say small team, I mean small. If one of us is sick, the other one is doing both jobs.</p>
+        <p class="at">Answer at 01:15</p>
+
+        <p class="q">Before Tallyhook, how did Ridgeline handle order entry and fulfillment? Walk me through what a typical week looked like. <span class="ts">(01:44)</span></p>
+        <p class="a">So orders came in every way you can imagine. Chefs would text me at eleven at night. Some of the grocers emailed a spreadsheet. A couple of the older restaurants literally called and read their order to me over the phone. And every single one of those I typed by hand into a Google Sheet. Monday was the worst, because everybody orders for the week on Sunday night. I'd sit down at six in the morning with maybe sixty orders across texts, emails and voicemails, and I'd be keying them in until lunch. Six hours, most Mondays, just typing. Then Theo would print the sheet and build the pick lists off it by hand.</p>
+        <p class="at">Answer at 01:52</p>
+
+        <p class="q">What did that cost you, in time, money or mistakes? <span class="ts">(02:40)</span></p>
+        <p class="a">The time part I've already said, call it six hours every Monday, and probably another eight across the rest of the week. The mistakes are what actually hurt. If I misread a text and sent a restaurant two wheels of cheese instead of two wedges, that's a hundred and forty dollars of product on a truck going the wrong way, and a chef who is annoyed with us. We were doing that maybe three or four times a week. I sat down once and figured we were eating around two thousand dollars a month in wrong-order credits and wasted product. And I was working every Sunday night because I was scared of Monday.</p>
+        <p class="at">Answer at 02:46</p>
+
+        <p class="q">What made you start looking for something different, and what else did you consider? <span class="ts">(03:38)</span></p>
+        <p class="a">There was a specific week last spring. I had the flu, Theo did the Monday entry, and he made a bunch of errors because he didn't know the customers' shorthand. We lost an account over it, a restaurant we'd had for four years. That was the week I said okay, this cannot depend on what is in my head. We looked at three things. One of the big enterprise systems, which quoted us something like eighteen thousand a year and wanted a six-month implementation. A generic inventory app that didn't really understand wholesale ordering. And Tallyhook, which a produce guy I know had mentioned.</p>
+        <p class="at">Answer at 03:45</p>
+
+        <p class="q">Why did you pick Tallyhook in the end? <span class="ts">(04:38)</span></p>
+        <p class="a">Honestly, the customer-facing side. Tallyhook gave every customer a little order page, and it also reads the emails and the texts and turns them into orders that I approve instead of type. That was the thing. I didn't need to change how my chefs behave, because chefs are not going to change. They're still texting me at eleven at night. The difference is now it lands as a draft order that I glance at and tap yes. And the price was three hundred a month, which against two thousand a month in mistakes was not a hard conversation to have with Theo.</p>
+        <p class="at">Answer at 04:44</p>
+
+        <p class="q">What did the first few weeks with Tallyhook actually look like? <span class="ts">(05:30)</span></p>
+        <p class="a">Messier than the sales pitch, I'll be honest. The first week I ran both systems side by side because I didn't trust it. I'd let Tallyhook draft the orders and then I'd check every one against what I would have typed. It caught two things I would have gotten wrong, and I caught one it got wrong, a customer who says 'the usual' and expects us to know. We set up a standing order for him and that was that. By the second week I stopped double-entering. By the third week Theo was pulling pick lists straight out of it and the printer in the warehouse had basically stopped running.</p>
+        <p class="at">Answer at 05:36</p>
+
+        <p class="q">What has changed since? If you have numbers, I would love to hear them. <span class="ts">(06:30)</span></p>
+        <p class="a">Monday order entry went from about six hours to about forty minutes. That's the one I tell people. Forty minutes, and most of that is me reading, not typing. Wrong-order credits went from around two thousand a month to under three hundred, and the ones we still get are usually the producer's fault, not ours. We've added eleven new accounts since the spring, which is more than we added in the two years before that, because I actually have time to go sell. And I don't work Sunday nights anymore. That one doesn't have a number on it, but it's the one that matters to me.</p>
+        <p class="at">Answer at 06:37</p>
+
+        <p class="q">Is there a moment where you noticed the difference? <span class="ts">(07:30)</span></p>
+        <p class="a">Yeah. The second Monday after we switched, I finished the orders, looked at the clock, and it was seven fifteen in the morning. I actually thought something was broken. I went out to the warehouse to ask Theo if the orders had come through, and he already had the first truck half loaded. I stood there for a second and thought, we got our Mondays back. That's still how I describe it to people.</p>
+        <p class="at">Answer at 07:36</p>
+
+        <p class="q">What would you tell another founder in your position who is weighing this? <span class="ts">(08:14)</span></p>
+        <p class="a">Don't wait for the disaster. I waited for the disaster, and the disaster cost me a four-year account. If you're the only person who can do the order entry, you don't have a process, you have a hostage situation, and the hostage is you. Also, run it side by side for a week if you're nervous. It costs you one extra week and you'll actually believe the numbers after that.</p>
+        <p class="at">Answer at 08:20</p>
+
+        <p class="q">Is there anything you would want the Tallyhook team to hear, or anything I should have asked? <span class="ts">(09:00)</span></p>
+        <p class="a">Only that their support people actually answer the phone. And no, I think you got it.</p>
+        <p class="at">Answer at 09:08</p>
+
+        <p class="q">That is everything I have. Thank you, Marisol. The Tallyhook team will send you the draft before anything is published, and nothing goes out without your okay. <span class="ts">(09:26)</span></p>
+        <p class="a">Great, thanks. Bye now.</p>
+        <p class="at">Answer at 09:40</p>
+
+        <p class="q">Consent</p>
+        <p class="a">Agent <span class="ts">(00:00)</span>: Hi, is this Marisol? This is the InterLogue interviewer calling on behalf of the marketing team at Tallyhook. Before we get going, two things. I am an AI, not a person, and I would like to record this call so that anything we quote is accurate to what you actually said. Is it okay with you if we record?</p>
+        <p class="a">Marisol Teague <span class="ts">(00:14)</span>: Yes, that's fine. Devon at Tallyhook said you would be calling. Go ahead.</p>
+        <p class="at">Citation check: OK, 23 quotes resolved to transcript timestamps.</p>
+      </div>
+    </details>
+  </article>
+
+  <h2 id="refuses">What it refuses</h2>
+  <p>When the subject said too little for a story, <code>draft_piece</code> refuses to issue a writing contract, because a case study written from five non-answers is a per-question record dressed as a story.</p>
+<pre aria-label="INTERVIEW TOO THIN message"><code>INTERVIEW TOO THIN for a story. No writing contract issued.
+Subject: Zaid Bulbul, Due Gooder. Transcript trn_mtye9s447c661e: 02:29 long, 12 subject turns.
+Substantive subject words: 80 (minimum 120)
+Planned beats with a real answer of 15+ words: 2 of 7 (minimum 4)
+  answered: problem, decision
+  unanswered: context, search, implementation, results, reflection
+Quote candidates of 8+ words: 4 (minimum 6)
+
+What this means: there is not enough said here to write a piece that leads with a story. Written up as a case study it would be a per-question record dressed as one, which is the failure this tool exists to prevent.
+
+Recommended, in this order:
+  1. Re-interview. Create a new brief for the same subject and ask the unanswered beats first: context, search, implementation, results, reflection. The transcript on file stays as it is.
+  2. Publish only the per-question record. The transcript is stored with every turn timestamped; it can be shown as the record of the call without a story on top.
+  3. If a piece must run anyway, call draft_piece again with allow_thin: true. The contract will then require the headline to say the interview was brief, and check_citations enforces it.</code></pre>
+
+  <p>When the brief names the subject's own company as the client, <code>brief</code> refuses before anything is saved, because a company interviewed about its own product is a founder story, not a customer case study.</p>
+<pre aria-label="BRIEF REFUSED message"><code>BRIEF REFUSED: the subject's company is the client.
+Subject company "Due Gooder" matches the client company "Due Gooder". A customer case study's subject must be a customer: a user of the product at a different company, whose story is about using it.
+Interviewing Due Gooder's own founder or team about Due Gooder is a founder story. That is a different genre and it is not in this build (see question_templates).
+Fix: name a customer of Due Gooder as the subject, with their own company, and keep Due Gooder as the client. Nothing was saved.
+Next: brief again with a customer as the subject.</code></pre>
+
+  <h2 id="rules">The rules</h2>
+  <ol class="rules">
+    <li>A human approves every person and number before a dial.</li>
+    <li>The agent states it is an AI and asks to record before anything else.</li>
+    <li>Every quote resolves to a transcript timestamp, or the piece does not publish.</li>
+  </ol>
+
+</main>
+
+<footer>
+  <p><a href="https://github.com/aminehamlouchi/interlogue">github.com/aminehamlouchi/interlogue</a></p>
+  <p>HackKentucky 2026. Built by Amine Hamlouchi and Ahmad Khalifa.</p>
+</footer>
+</body>
+</html>

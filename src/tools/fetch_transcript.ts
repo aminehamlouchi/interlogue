@@ -146,6 +146,9 @@ export function register(server: McpServer): void {
       }
       const turns: Turn[] = rawTurns.map((t, index) => ({ index, speaker: t.speaker, time_in_call_secs: t.time_in_call_secs, timestamp: formatTimestamp(t.time_in_call_secs), text: t.text }));
 
+      const consent = detectConsent(turns);
+      const opening = turns.slice(0, 4).map((t) => `  [${t.timestamp}] ${t.speaker}: ${t.text}`);
+      const meta = details.metadata ?? {};
       if (looksLikeVoicemail(turns)) {
         await saveCall({ ...call, status: "failed", last_error: "reached voicemail", call_duration_secs: meta.call_duration_secs, cost_credits: meta.cost ?? null, cost_usd: meta.cost_fiat ?? null });
         return refuse([
@@ -154,9 +157,6 @@ export function register(server: McpServer): void {
           "Tell the user the subject did not pick up, and offer to call again when they can answer. A new brief is needed for the next call.",
         ]);
       }
-      const consent = detectConsent(turns);
-      const opening = turns.slice(0, 4).map((t) => `  [${t.timestamp}] ${t.speaker}: ${t.text}`);
-      const meta = details.metadata ?? {};
       const readyAt = nowIso();
       const wallClock = Math.round((Date.parse(readyAt) - Date.parse(call.placed_at)) / 1000);
 

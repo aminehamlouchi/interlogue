@@ -10,21 +10,36 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { detectConsent } from "../consent.js";
-import { ElevenLabsError, TERMINAL_STATUSES, getConversation, getPhoneConfig, type ConversationDetails } from "../phone/elevenlabs.js";
+import { ElevenLabsError, getConversation, getPhoneConfig, type ConversationDetails } from "../phone/elevenlabs.js";
+import { waitForConversation } from "../phone/waitForConversation.js";
 import { normalizeTranscript } from "../phone/normalize.js";
 import { errorMessage, redactPhones, refuse, reply } from "../respond.js";
 import { loadBrief, loadCall, loadTranscript, saveCall, saveTranscript } from "../store/fileStore.js";
 import type { Transcript, Turn } from "../types.js";
 import { formatTimestamp, newId, nowIso } from "../util.js";
 
+/**
+ * One call waits up to DEFAULT_WAIT_SECS, well under the host caps reported
+ * for Claude Desktop (about four minutes). If a host cancels earlier, the
+ * server records how long it waited and caps the next call for that brief
+ * below it, so the demo self-corrects instead of tripping twice.
+ */
+export const DEFAULT_WAIT_SECS = 170;
+export const MAX_WAIT_SECS = 200;
+const POLL_INTERVAL_MS = 3000;
+const HOST_ABORT_MARGIN_SECS = 15;
+
 const inputSchema = {
   brief_id: z.string().min(1).describe("The brief whose call was placed with place_call."),
-  wait_secs: z.number().min(0).max(55).default(50).describe("How long to wait for the conversation to finish before returning 'still in progress'. Repeat the call if needed."),
+  wait_secs: z
+    .number()
+    .min(0)
+    .max(MAX_WAIT_SECS)
+    .default(DEFAULT_WAIT_SECS)
+    .describe(
+      `Seconds to wait for the call to end before answering "still in progress". Default ${DEFAULT_WAIT_SECS}. A ten-minute interview needs about four calls at the default. Leave it alone unless you know the host's timeout.`,
+    ),
 };
-
-const POLL_INTERVAL_MS = 3000;
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function register(server: McpServer): void {
   server.registerTool(
@@ -32,12 +47,13 @@ export function register(server: McpServer): void {
     {
       title: "Fetch the call transcript (phone path, step 2 of 2)",
       description:
-        "Waits for the placed call to end, fetches the conversation transcript from ElevenLabs, normalizes it to timestamped turns, " +
-        "runs the consent check (AI disclosure, permission to record, the subject's yes), and stores it append-only against the brief. " +
-        "Returns 'still in progress' if the call has not ended within wait_secs; call again. Then: draft_piece.",
+        "Step 2 of the phone path. Waits for the placed call to end (up to about three minutes per call), then fetches the transcript from ElevenLabs, " +
+        "normalizes it to timestamped turns, runs the consent check (AI disclosure, permission to record, the subject's yes), and stores it against the brief. " +
+        "If the call is still running it answers STILL IN PROGRESS: call it again, as many times as needed, until it answers TRANSCRIPT STORED. " +
+        "A ten-minute interview needs about four calls. Then: draft_piece.",
       inputSchema,
     },
-    async (input) => {
+    async (input, extra) => {
       let brief;
       try {
         brief = await loadBrief(input.brief_id);
@@ -56,25 +72,69 @@ export function register(server: McpServer): void {
       const cfg = getPhoneConfig();
       if (!cfg.ok) return refuse(["FETCH REFUSED: phone path not configured", `Missing environment variable(s): ${cfg.missing.join(", ")}.`]);
 
-      // Poll until terminal or the wait budget is spent.
-      const deadline = Date.now() + input.wait_secs * 1000;
+      // Bounded wait. If this host cancelled an earlier wait for this brief, stay under that.
+      let waitSecs = input.wait_secs;
+      let capNote = "";
+      if (call.host_abort_after_secs && call.host_abort_after_secs - HOST_ABORT_MARGIN_SECS < waitSecs) {
+        waitSecs = Math.max(10, call.host_abort_after_secs - HOST_ABORT_MARGIN_SECS);
+        capNote = `Wait capped at ${waitSecs}s because this host cancelled an earlier wait after about ${call.host_abort_after_secs}s.`;
+      }
+      const progressToken = extra?._meta?.progressToken;
+      const waitStarted = Date.now();
+      const cfgConfig = cfg.config;
+      const signal = extra?.signal;
+      let abortHandled = false;
+      const onAbort = async (): Promise<void> => {
+        if (abortHandled) return;
+        abortHandled = true;
+        const secs = Math.round((Date.now() - waitStarted) / 1000);
+        try {
+          const latest = (await loadCall(brief.brief_id)) ?? call;
+          if (latest.status === "placed") await saveCall({ ...latest, host_abort_after_secs: secs });
+        } catch {
+          // best effort; the next call simply uses the default wait
+        }
+      };
+      signal?.addEventListener("abort", () => void onAbort(), { once: true });
+
       let details: ConversationDetails | null = null;
+      let lastStatus: string | null = null;
+      let elapsedMs = 0;
       try {
-        for (;;) {
-          details = await getConversation(cfg.config, call.conversation_id);
-          if (TERMINAL_STATUSES.has(details.status)) break;
-          if (Date.now() >= deadline) {
-            return reply([
-              `CALL STILL IN PROGRESS: status "${details.status}"`,
-              `conversation_id: ${call.conversation_id} · placed at ${call.placed_at}`,
-              `Next: fetch_transcript again with brief_id ${brief.brief_id} once the call has ended.`,
-            ]);
-          }
-          await sleep(POLL_INTERVAL_MS);
+        const r = await waitForConversation({
+          getDetails: () => getConversation(cfgConfig, call.conversation_id),
+          waitMs: waitSecs * 1000,
+          pollMs: POLL_INTERVAL_MS,
+          signal,
+          onProgress: async (elapsed, total, status) => {
+            if (progressToken === undefined || !extra?.sendNotification) return;
+            await extra.sendNotification({
+              method: "notifications/progress",
+              params: { progressToken, progress: Math.round(elapsed / 1000), total: Math.round(total / 1000), message: `call ${status}` },
+            });
+          },
+        });
+        details = r.details;
+        lastStatus = r.lastStatus;
+        elapsedMs = r.elapsedMs;
+        if (r.aborted) {
+          await onAbort();
+          return refuse(["FETCH CANCELLED by the host before the call ended", `Waited ${Math.round(elapsedMs / 1000)}s. The call itself continues. Call fetch_transcript again.`]);
         }
       } catch (e) {
         if (e instanceof ElevenLabsError) return refuse([`FETCH FAILED: ElevenLabs returned HTTP ${e.status}`, `Detail: ${e.detail}`]);
         return refuse(["FETCH FAILED", redactPhones(errorMessage(e))]);
+      }
+      if (!details) {
+        const sinceDial = Math.round((Date.now() - Date.parse(call.placed_at)) / 1000);
+        return reply([
+          `STILL IN PROGRESS: the call is ${lastStatus ?? "running"} after ${sinceDial}s. Call fetch_transcript again.`,
+          `Waited ${Math.round(elapsedMs / 1000)}s this time. Each call waits up to ${waitSecs}s; a ten-minute interview needs about four calls.`,
+          `conversation_id: ${call.conversation_id}, placed at ${call.placed_at}`,
+          capNote,
+          "",
+          `Next: fetch_transcript with brief_id ${brief.brief_id}. Keep calling it until it says TRANSCRIPT STORED.`,
+        ]);
       }
 
       if (details.status === "failed") {

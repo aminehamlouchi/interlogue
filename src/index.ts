@@ -50,8 +50,35 @@ function packageVersion(): string {
   }
 }
 
+/**
+ * Timing line per tool call on stderr: tool name, duration, ok/error. Hosts
+ * such as Claude Desktop capture stderr in their MCP log, which is how the
+ * longest single call is measured against the host's timeout. No arguments
+ * and no subject data are ever logged.
+ */
+function withTiming(server: McpServer): void {
+  const original = server.registerTool.bind(server);
+  // The generic signature is preserved by the cast; only the callback is wrapped.
+  (server as unknown as { registerTool: unknown }).registerTool = ((name: string, config: unknown, cb: (...a: unknown[]) => Promise<unknown>) =>
+    (original as unknown as (n: string, c: unknown, f: unknown) => unknown)(name, config, async (...args: unknown[]) => {
+      const started = Date.now();
+      let outcome = "ok";
+      try {
+        const result = (await cb(...args)) as { isError?: boolean };
+        if (result && result.isError) outcome = "refused";
+        return result;
+      } catch (e) {
+        outcome = "error";
+        throw e;
+      } finally {
+        console.error(`interlogue: ${name} ${Date.now() - started}ms ${outcome}`);
+      }
+    })) as typeof server.registerTool;
+}
+
 async function main(): Promise<void> {
   const server = new McpServer({ name: "interlogue", version: packageVersion() });
+  withTiming(server);
   for (const tool of TOOLS) tool.register(server);
   const transport = new StdioServerTransport();
   await server.connect(transport);

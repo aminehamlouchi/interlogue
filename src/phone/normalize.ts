@@ -24,10 +24,27 @@ export function buildDynamicVariables(brief: Brief): Record<string, string> {
  * seconds-into-call timestamp. Entries with no message (tool calls, empty
  * segments) are dropped. Order is by time, stable.
  */
+/**
+ * Stage-direction tags the agent's model emits inside its own lines, such as
+ * "[professional]" or "[surprised]". They are delivery notes, not speech.
+ * Stripped from AGENT turns only; subject turns are never touched.
+ */
+const STAGE_TAG_RE = /\[[a-z][a-z .,'-]{0,40}\]/gi;
+
+export function stripStageTags(agentText: string): string {
+  return agentText
+    .replace(STAGE_TAG_RE, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\s+([,;:!?])/g, "$1")
+    .replace(/\s+\.(?!\.)/g, ".")
+    .trim();
+}
+
 export function normalizeTranscript(details: ConversationDetails): TurnInput[] {
   const turns: TurnInput[] = [];
   for (const entry of details.transcript ?? []) {
-    const text = (entry.message ?? "").replace(/\s+/g, " ").trim();
+    const raw = (entry.message ?? "").replace(/\s+/g, " ").trim();
+    const text = entry.role === "agent" ? stripStageTags(raw) : raw;
     if (!text) continue;
     const secs = typeof entry.time_in_call_secs === "number" && Number.isFinite(entry.time_in_call_secs) ? Math.max(0, entry.time_in_call_secs) : 0;
     turns.push({ speaker: entry.role === "user" ? "subject" : "agent", time_in_call_secs: secs, text });

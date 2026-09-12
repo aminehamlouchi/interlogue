@@ -160,6 +160,8 @@ export interface CallRecord {
   /** USD as reported by ElevenLabs conversation metadata (cost_fiat). */
   cost_usd?: number | null;
   last_error?: string;
+  /** Seconds a host waited before cancelling a fetch_transcript call; the next call stays under it. */
+  host_abort_after_secs?: number;
 }
 
 // ---------------------------------------------------------------------------

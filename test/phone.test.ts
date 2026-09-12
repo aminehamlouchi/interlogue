@@ -132,3 +132,47 @@ test("call records hold only the last four digits", async () => {
   assert.ok(!JSON.stringify(rec).includes("5550142"));
   assert.equal(rec!.to_number_last4, "0142");
 });
+
+const { stripStageTags } = await import("../src/phone/normalize.js");
+const { waitForConversation } = await import("../src/phone/waitForConversation.js");
+
+test("stage-direction tags are stripped from agent turns only, using real tagged turns from tonight", () => {
+  const real = "[surprised] I'm sorry, but I need to stop you there. [serious] My very first words must be the recording consent request, ...";
+  assert.equal(stripStageTags(real), "I'm sorry, but I need to stop you there. My very first words must be the recording consent request, ...");
+  assert.equal(stripStageTags("[professional] Great, thank you Amine. To start, can you tell me a little about InterLogue and what you do there?"), "Great, thank you Amine. To start, can you tell me a little about InterLogue and what you do there?");
+  const details = {
+    conversation_id: "c",
+    status: "done" as const,
+    transcript: [
+      { role: "agent" as const, message: "[patient] No problem at all, I'll hold while you check.", time_in_call_secs: 6 },
+      { role: "user" as const, message: "[laughs] I said [the usual] and he knew.", time_in_call_secs: 9 },
+    ],
+  };
+  const turns = normalizeTranscript(details);
+  assert.equal(turns[0].text, "No problem at all, I'll hold while you check.");
+  assert.equal(turns[1].text, "[laughs] I said [the usual] and he knew.", "subject turns are never touched");
+});
+
+test("waitForConversation returns within the bound, reports progress, and stops on abort", async () => {
+  let calls = 0;
+  const pending = { conversation_id: "c", status: "in-progress" as const, transcript: [] };
+  const done = { conversation_id: "c", status: "done" as const, transcript: [] };
+  const progress: number[] = [];
+  const t0 = Date.now();
+  const r1 = await waitForConversation({ getDetails: async () => (++calls, pending), waitMs: 700, pollMs: 200, onProgress: (e) => void progress.push(e) });
+  const took = Date.now() - t0;
+  assert.equal(r1.details, null);
+  assert.equal(r1.aborted, false);
+  assert.ok(took < 1100, `bounded wait overran: ${took}ms`);
+  assert.ok(progress.length >= 2, "progress should be reported on each poll");
+  calls = 0;
+  const r2 = await waitForConversation({ getDetails: async () => (++calls >= 2 ? done : pending), waitMs: 5000, pollMs: 50 });
+  assert.equal(r2.details?.status, "done");
+  assert.equal(r2.polls, 2);
+  const ac = new AbortController();
+  setTimeout(() => ac.abort(), 120);
+  const t1 = Date.now();
+  const r3 = await waitForConversation({ getDetails: async () => pending, waitMs: 5000, pollMs: 2000, signal: ac.signal });
+  assert.equal(r3.aborted, true);
+  assert.ok(Date.now() - t1 < 1000, "abort should end the wait immediately");
+});

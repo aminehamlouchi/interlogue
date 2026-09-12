@@ -47,11 +47,7 @@ export function register(server: McpServer): void {
     {
       title: "Fact-check a piece against its transcript",
       description:
-        "Validates that every quoted span resolves to a subject turn at the cited timestamp. " +
-        "With piece_id it re-checks a stored piece. With brief_id and markdown it checks a host-written piece: section order " +
-        "(story, then pull quotes), every quote verbatim and timestamped, no numbers outside quotes, no repeated frames. " +
-        "A clean pass persists the piece as a draft for human review and returns its piece_id. A fail returns every failing span " +
-        "with the closest matching turn so you can fix and resubmit; nothing is persisted on a fail.",
+        "Call this to publish a piece you have written: pass the brief_id and the whole piece as markdown (headline, story, then a '## Pull quotes' section). It checks that every quoted span is verbatim from the subject at the cited timestamp and that the piece leads with the story. On a pass it stores the piece and returns it with the per-question record appended: show the user the published piece. On a fail it lists each failing span with the closest transcript turn: fix those spans and resubmit without asking the user; nothing is stored until it passes. With piece_id alone it re-checks a stored piece.",
       inputSchema,
     },
     async (input) => {

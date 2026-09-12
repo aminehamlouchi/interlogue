@@ -75,13 +75,10 @@ Claude Code: the repo ships a `.mcp.json`, so opening the folder registers the
 
 Paste this brief into Claude:
 
-> Use the InterLogue tools. Brief: subject Marisol Teague, founder of Ridgeline
-> Provisions, phone +1-502-555-0142. Client Tallyhook, product Tallyhook. Topic:
-> order entry and fulfillment. Angle: a two-person team getting its Mondays back
-> from manual, error-prone order entry. I am a human and I approve contacting her
-> at that number. Run the interview from the founder-case-study fixture, then get
-> the reporter's packet, write the piece yourself following the contract, and
-> submit it to check_citations until it passes. Show me the published piece.
+> Interview Marisol Teague, +1-502-555-0142, founder of Ridgeline Provisions,
+> about switching her order entry to Tallyhook, for Tallyhook's marketing team.
+> I approve contacting her at that number. Use the founder-case-study fixture
+> instead of calling, then write the piece and show it to me.
 
 The exact sequence of tool calls Claude makes:
 
@@ -131,14 +128,14 @@ it can enforce mechanically:
 
 | Tool | What it does |
 | --- | --- |
-| `brief` | Persists the assignment brief and builds the question plan. Genre is fixed to customer case study, so the subject must be a customer of the product at another company; a brief whose subject company is the client or the product is refused. The angle marks which beats are high priority; those beats get their follow-up questions and lead the emphasis. |
+| `brief` | Takes the subject's name, phone number and one sentence about who they are and what the piece is about. Role, company, client, product, topic and angle are inferred from the sentence or defaulted, and the result says what was chosen. A subject at another company than the client gets the customer case study plan; a subject whose company is the client or the product gets the founder story plan. The angle marks which beats get follow-up questions and lead the emphasis. |
 | `approve_contact` | Records a human's explicit approval of one specific name and one specific number against a brief. Requires `confirm: true`. This record is the only thing that can ever unlock a dial. |
 | `run_interview` | Text-only. Takes a fixture name or inline turns, refuses without an approval, refuses a transcript whose opening does not state the agent is an AI and ask permission to record, and stores the transcript append-only. |
 | `place_call` | Phone path, step 1. Refused without the approval record. Places one outbound call through the ElevenLabs agent over Twilio with the six dynamic variables from the brief. |
 | `fetch_transcript` | Phone path, step 2. Waits for the call to end, fetches and normalizes the transcript with real timestamps, runs the consent check, stores it append-only, records time and cost. |
-| `draft_piece` | Grades the interview first and answers INTERVIEW TOO THIN when the subject said too little for a story (a human can override with `allow_thin`, and the headline must then say the interview was brief). Otherwise returns the reporter's packet: brief, angle, question plan, writing contract, ranked verbatim quote candidates with timestamps, full transcript. |
+| `draft_piece` | Always returns the reporter's packet: brief, angle, question plan, writing contract, ranked verbatim quote candidates with timestamps, full transcript. When the interview graded thin, the packet opens with the numbers as advice and the contract requires the headline to say the interview was brief. |
 | `check_citations` | The fact-checker. With `brief_id` and `markdown`, validates a host-written piece and persists it only on a clean pass. With `piece_id`, re-checks a stored piece. |
-| `generate_piece` | Fallback writer. Assembles the piece deterministically from the transcript, runs the citation check, persists only on a pass. Used by `npm run spine`. |
+| `generate_piece` | Fallback writer, registered only when `INTERLOGUE_ALLOW_FALLBACK=1` is set (which `npm run spine` does for the no-host judge run). Inside Claude it is not offered, so the host always writes. |
 | `status` | Where a brief sits in the spine and what to call next. |
 | `discover_contacts` | Stub. Returns "not in this build". |
 | `question_templates` | Stub. Returns "not in this build". |

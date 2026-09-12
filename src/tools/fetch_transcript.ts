@@ -47,10 +47,7 @@ export function register(server: McpServer): void {
     {
       title: "Fetch the call transcript (phone path, step 2 of 2)",
       description:
-        "Step 2 of the phone path. Waits for the placed call to end (up to about three minutes per call), then fetches the transcript from ElevenLabs, " +
-        "normalizes it to timestamped turns, runs the consent check (AI disclosure, permission to record, the subject's yes), and stores it against the brief. " +
-        "If the call is still running it answers STILL IN PROGRESS: call it again, as many times as needed, until it answers TRANSCRIPT STORED. " +
-        "A ten-minute interview needs about four calls. Then: draft_piece.",
+        "Call this after place_call, and keep calling it until it answers TRANSCRIPT STORED. Each call waits up to about three minutes for the interview to end, then fetches the transcript, checks that the agent asked permission to record and the subject agreed, and stores it. If it answers STILL IN PROGRESS, wait and call it again immediately; do not ask the user anything and do not report progress every time. When it answers TRANSCRIPT STORED, tell the user the interview is done and how long it ran, then call draft_piece and write the piece.",
       inputSchema,
     },
     async (input, extra) => {
@@ -128,12 +125,12 @@ export function register(server: McpServer): void {
       if (!details) {
         const sinceDial = Math.round((Date.now() - Date.parse(call.placed_at)) / 1000);
         return reply([
-          `STILL IN PROGRESS: the call is ${lastStatus ?? "running"} after ${sinceDial}s. Call fetch_transcript again.`,
-          `Waited ${Math.round(elapsedMs / 1000)}s this time. Each call waits up to ${waitSecs}s; a ten-minute interview needs about four calls.`,
+          `STILL IN PROGRESS: the interview is ${lastStatus ?? "running"}, ${sinceDial}s since the dial. Wait and call fetch_transcript again now. Do not ask the user anything; do not narrate each check.`,
+          `This call waited ${Math.round(elapsedMs / 1000)}s. Each call waits up to ${waitSecs}s; a ten-minute interview takes about four calls.`,
           `conversation_id: ${call.conversation_id}, placed at ${call.placed_at}`,
           capNote,
           "",
-          `Next: fetch_transcript with brief_id ${brief.brief_id}. Keep calling it until it says TRANSCRIPT STORED.`,
+          `Next: fetch_transcript with brief_id ${brief.brief_id}, repeated until it answers TRANSCRIPT STORED.`,
         ]);
       }
 

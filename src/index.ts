@@ -24,6 +24,13 @@ import * as questionTemplates from "./tools/question_templates.js";
 import * as runInterview from "./tools/run_interview.js";
 import * as status from "./tools/status.js";
 
+/**
+ * The fallback writer is registered only for the no-host judge run
+ * (`npm run spine` sets INTERLOGUE_ALLOW_FALLBACK=1). Inside Claude the host
+ * writes; the fallback must never be selectable there.
+ */
+const ALLOW_FALLBACK = process.env.INTERLOGUE_ALLOW_FALLBACK === "1";
+
 const TOOLS = [
   brief,
   approveContact,
@@ -32,7 +39,7 @@ const TOOLS = [
   fetchTranscript,
   draftPiece,
   checkCitations,
-  generatePiece,
+  ...(ALLOW_FALLBACK ? [generatePiece] : []),
   status,
   discoverContacts,
   questionTemplates,
@@ -51,12 +58,12 @@ function packageVersion(): string {
 }
 
 /**
- * Timing line per tool call on stderr: tool name, duration, ok/error. Hosts
- * such as Claude Desktop capture stderr in their MCP log, which is how the
- * longest single call is measured against the host's timeout. No arguments
- * and no subject data are ever logged.
+ * Never crash. Every tool callback is wrapped: an exception becomes an error
+ * result the host can read, and the process lives on. A timing line per call
+ * goes to stderr (tool name, duration, outcome), which hosts capture in their
+ * MCP log. No arguments and no subject data are ever logged.
  */
-function withTiming(server: McpServer): void {
+export function withTiming(server: McpServer): void {
   const original = server.registerTool.bind(server);
   // The generic signature is preserved by the cast; only the callback is wrapped.
   (server as unknown as { registerTool: unknown }).registerTool = ((name: string, config: unknown, cb: (...a: unknown[]) => Promise<unknown>) =>
@@ -69,12 +76,33 @@ function withTiming(server: McpServer): void {
         return result;
       } catch (e) {
         outcome = "error";
-        throw e;
+        const message = e instanceof Error ? e.message : String(e);
+        console.error(`interlogue: ${name} threw: ${message}`);
+        return {
+          content: [
+            {
+              type: "text",
+              text: [
+                `INTERNAL ERROR in ${name}: ${message}`,
+                "The server is still running. Tell the user something went wrong on our side, then try the step again once; if it fails again, ask them to report it with the brief_id.",
+              ].join("\n"),
+            },
+          ],
+          isError: true,
+        };
       } finally {
         console.error(`interlogue: ${name} ${Date.now() - started}ms ${outcome}`);
       }
     })) as typeof server.registerTool;
 }
+
+/** Process-level backstop: log and keep serving rather than die on a stray error. */
+process.on("uncaughtException", (e) => {
+  console.error(`interlogue: uncaught exception (kept running): ${e instanceof Error ? e.message : String(e)}`);
+});
+process.on("unhandledRejection", (e) => {
+  console.error(`interlogue: unhandled rejection (kept running): ${e instanceof Error ? e.message : String(e)}`);
+});
 
 async function main(): Promise<void> {
   const server = new McpServer({ name: "interlogue", version: packageVersion() });
@@ -82,10 +110,14 @@ async function main(): Promise<void> {
   for (const tool of TOOLS) tool.register(server);
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error(`interlogue ${packageVersion()}: MCP server ready on stdio (${TOOLS.length} tools)`);
+  console.error(`interlogue ${packageVersion()}: MCP server ready on stdio (${TOOLS.length} tools${ALLOW_FALLBACK ? ", fallback writer enabled" : ""})`);
 }
 
-main().catch((e: unknown) => {
-  console.error(`interlogue: failed to start: ${e instanceof Error ? e.message : String(e)}`);
-  process.exit(1);
-});
+// Start only when run directly (not when imported by tests).
+const isMain = process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+  main().catch((e: unknown) => {
+    console.error(`interlogue: failed to start: ${e instanceof Error ? e.message : String(e)}`);
+    process.exit(1);
+  });
+}

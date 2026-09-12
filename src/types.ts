@@ -59,7 +59,11 @@ export interface Transcript {
 // Brief and question plan
 // ---------------------------------------------------------------------------
 
-export type Genre = "customer_case_study";
+/**
+ * customer_case_study: the subject is a customer of the product at another company.
+ * founder_story: the subject's company is the client or the product; they talk about what they built.
+ */
+export type Genre = "customer_case_study" | "founder_story";
 
 /** Story beats of a customer case study, in arc order. */
 export type Beat =
@@ -112,6 +116,8 @@ export interface Brief {
   topic: string;
   /** The editor's angle. Shapes which questions are asked and what is emphasized. Never what the subject said. */
   angle: string;
+  /** The one sentence the user typed about who this is and what the piece is about, when the brief came that way. */
+  about?: string;
   content_needed: string[];
   /** Angle weights per beat, 0..1. Derived from the angle, stored for transparency. */
   emphasis: Record<Beat, number>;

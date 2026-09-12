@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { refuseCaseStudyBrief } from "../src/generate/briefRules.js";
+import { detectGenre } from "../src/generate/briefRules.js";
 import { THRESHOLDS, gradeInterview, headlineSaysBrief, tooThinLines } from "../src/generate/grade.js";
 import { checkMarkdownPiece } from "../src/generate/markdownPiece.js";
 import { buildPacket } from "../src/generate/packet.js";
@@ -100,17 +100,13 @@ test("headlineSaysBrief accepts the documented forms and rejects a plain headlin
   assert.equal(headlineSaysBrief("“It works”: Due Gooder on scheduling"), false);
 });
 
-test("a brief whose subject company is the client or the product is refused, using the morning brief's values", () => {
+test("a brief whose subject company is the client or the product becomes a founder story, using the morning brief's values", () => {
   const stored = existsSync(path.join(DATA, "briefs", "brf_mtye54g0a3f249.json")) ? JSON.parse(readFileSync(path.join(DATA, "briefs", "brf_mtye54g0a3f249.json"), "utf8")) : null;
   const morning = stored
     ? { subject_company: stored.subject.company, client_company: stored.client.company, client_product: stored.client.product }
     : { subject_company: "Due Gooder", client_company: "Due Gooder", client_product: "Due Gooder" };
-  const r = refuseCaseStudyBrief(morning);
-  assert.ok(r, "must refuse");
-  assert.ok(r![0].startsWith("BRIEF REFUSED"));
-  assert.ok(r!.some((l) => l.includes("must be a customer")));
-  assert.ok(r!.some((l) => l.includes("founder story")));
-  assert.equal(refuseCaseStudyBrief({ subject_company: "Ridgeline Provisions", client_company: "Tallyhook", client_product: "Tallyhook" }), null);
-  assert.ok(refuseCaseStudyBrief({ subject_company: "Due Gooder, Inc.", client_company: "due gooder", client_product: "Planner" }));
-  assert.ok(refuseCaseStudyBrief({ subject_company: "InterLogue", client_company: "Acme", client_product: "InterLogue" }));
+  assert.equal(detectGenre(morning), "founder_story");
+  assert.equal(detectGenre({ subject_company: "Ridgeline Provisions", client_company: "Tallyhook", client_product: "Tallyhook" }), "customer_case_study");
+  assert.equal(detectGenre({ subject_company: "Due Gooder, Inc.", client_company: "due gooder", client_product: "Planner" }), "founder_story");
+  assert.equal(detectGenre({ subject_company: "InterLogue", client_company: "Acme", client_product: "InterLogue" }), "founder_story");
 });

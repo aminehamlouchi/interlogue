@@ -39,6 +39,7 @@ async function main(): Promise<number> {
 
   const env: Record<string, string> = { ...getDefaultEnvironment() };
   if (process.env.INTERLOGUE_DATA_DIR) env.INTERLOGUE_DATA_DIR = process.env.INTERLOGUE_DATA_DIR;
+  if (process.env.INTERLOGUE_ALLOW_FALLBACK) env.INTERLOGUE_ALLOW_FALLBACK = process.env.INTERLOGUE_ALLOW_FALLBACK;
   // The phone path: forward only the ElevenLabs variables (loaded into this process by
   // `node --env-file=.env`), never printed, never anything else from the shell.
   for (const k of Object.keys(process.env)) if (k.startsWith("ELEVENLABS_") && process.env[k]) env[k] = process.env[k]!;

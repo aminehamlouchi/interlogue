@@ -52,9 +52,7 @@ export function register(server: McpServer): void {
     {
       title: "Record human approval to contact the subject",
       description:
-        "A human records that InterLogue may contact exactly this person at exactly this number for this brief. " +
-        "This is the no-cold-outreach gate: run_interview refuses to proceed without a matching record. " +
-        "The name and number must match the brief. Re-approving with identical values returns the existing record; different values are refused. Next step: run_interview.",
+        "Call this right after brief, once the user has confirmed in their own words that InterLogue may contact this specific person at this specific number; pass their words as the statement, the user's name as approved_by, and confirm: true. Never call it before the user has said yes, and never invent the statement. It records the human approval that every interview and every call requires. When it returns, tell the user the approval is on file and ask whether to call now (phone) or run the interview from text.",
       inputSchema,
     },
     async (input) => {

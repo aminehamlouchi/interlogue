@@ -16,7 +16,7 @@ export function register(server: McpServer): void {
     {
       title: "Download recording (not in this build)",
       description:
-        "Cut-list stub. No audio is fetched or stored by this build; the timestamped transcript is the record. Any transcript_id gets the same answer.",
+        "Do not call this to get audio; there is none to download. The timestamped transcript is the record of the interview. If the user asks for the recording, tell them the transcript with timestamps is what InterLogue keeps.",
       inputSchema: { transcript_id: z.string().describe("Ignored. Kept so the tool has a stable shape.") },
     },
     async () => reply([TEXT]),

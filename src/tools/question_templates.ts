@@ -16,7 +16,7 @@ export function register(server: McpServer): void {
     {
       title: "Question templates by genre (not in this build)",
       description:
-        "Cut-list stub. There is one genre, customer case study, and its questions come from the brief tool's angle-driven plan. Any genre passed here gets the same answer.",
+        "Do not call this to get questions; the brief tool already builds the question plan from the user's sentence, as a customer case study or a founder story. It only explains that other genres are not in this build.",
       inputSchema: { genre: z.string().describe("Ignored. Kept so the tool has a stable shape.") },
     },
     async () => reply([TEXT]),

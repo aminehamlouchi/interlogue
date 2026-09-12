@@ -221,7 +221,9 @@ export const deterministicReporter: Writer = {
 
     // The dek is built from brief facts only. The angle is deliberately absent: it shapes
     // emphasis, and printing it here would portray the subject as having spoken to it.
-    const dek = `A customer case study with ${brief.subject.name}, ${brief.subject.role} of ${brief.subject.company}, for ${brief.client.company}.`;
+    const dek = brief.genre === "founder_story"
+      ? `A founder story with ${brief.subject.name}, ${brief.subject.role} of ${brief.subject.company}.`
+      : `A customer case study with ${brief.subject.name}, ${brief.subject.role} of ${brief.subject.company}, for ${brief.client.company}.`;
     const lastSecs = turns.length ? turns[turns.length - 1].time_in_call_secs : 0;
     const minutes = Math.max(1, Math.round(lastSecs / 60));
     const sourceWords = transcript.source === "elevenlabs" ? "a recorded" : "the text transcript of a";

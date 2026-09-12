@@ -69,7 +69,7 @@ async function main(): Promise<number> {
 
   // Give the server only the SDK's safe default environment plus the data dir override.
   // Nothing else from this shell reaches the child.
-  const env: Record<string, string> = { ...getDefaultEnvironment() };
+  const env: Record<string, string> = { ...getDefaultEnvironment(), INTERLOGUE_ALLOW_FALLBACK: "1" };
   if (process.env.INTERLOGUE_DATA_DIR) env.INTERLOGUE_DATA_DIR = process.env.INTERLOGUE_DATA_DIR;
   // The phone path: forward only the ElevenLabs variables (loaded into this process by
   // `node --env-file=.env`), never printed, never anything else from the shell.

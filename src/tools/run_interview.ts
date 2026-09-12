@@ -59,10 +59,7 @@ export function register(server: McpServer): void {
     {
       title: "Run the interview (text-only in this build)",
       description:
-        "Runs the interview step of the spine on text: either a named fixture transcript or inline turns. " +
-        "Refuses unless a human approval for this brief's exact person and number is on file (the same gate a real dial would need). " +
-        "Checks that the agent disclosed it is an AI and asked permission to record at the top of the call, then saves the transcript. Transcripts are append-only. " +
-        "No phone call is placed in this build. Next step: generate_piece.",
+        "Call this for a text-only interview: the built-in fixture (fixture: \"founder-case-study\") for a demo, or turns the user already has. Do not call it for a real phone interview; that is place_call then fetch_transcript. It refuses without the human approval on file, and refuses a transcript whose opening does not show the agent saying it is an AI, asking to record, and the subject saying yes. When it returns, tell the user the interview is stored and that you will now write the piece.",
       inputSchema,
     },
     async (input) => {

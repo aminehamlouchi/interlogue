@@ -10,7 +10,7 @@
  * Genre is fixed to customer case study in this build. Multi-genre templates
  * are on the cut list and answered by the question_templates stub.
  */
-import { BEAT_ORDER, type Beat, type Brief, type PlannedQuestion } from "./types.js";
+import { BEAT_ORDER, type Beat, type Brief, type Genre, type PlannedQuestion } from "./types.js";
 import { stem, tokenize } from "./util.js";
 
 interface BankEntry {
@@ -124,6 +124,26 @@ export const CASE_STUDY_BANK: readonly BankEntry[] = [
 ];
 
 /**
+ * Founder story: the subject's company is the client or the product. Same seven
+ * beats, so the grader, the packet and the fallback writer work unchanged.
+ * Placeholders: {company} {name}
+ */
+export const FOUNDER_STORY_BANK: readonly BankEntry[] = [
+  { id: "fs_context_1", beat: "context", follow_up: false, text: "To start, tell me about {company} and what you do there.", label: "what {company} does" },
+  { id: "fs_context_2", beat: "context", follow_up: true, text: "How did it begin? What were you doing before this?", label: "the origin" },
+  { id: "fs_problem_1", beat: "problem", follow_up: false, text: "What problem did you see that made you start {company}?", label: "the problem they saw" },
+  { id: "fs_problem_2", beat: "problem", follow_up: true, text: "What did that problem cost people, in time, money or frustration?", label: "what the problem cost" },
+  { id: "fs_search_1", beat: "search", follow_up: false, text: "What existed already, and why was it not enough?", label: "what existed already" },
+  { id: "fs_decision_1", beat: "decision", follow_up: false, text: "What did you build, and why that way?", label: "what they built" },
+  { id: "fs_decision_2", beat: "decision", follow_up: true, text: "What almost stopped you?", label: "what nearly stopped them" },
+  { id: "fs_implementation_1", beat: "implementation", follow_up: false, text: "What did the first version look like, and what did the first people who used it do with it?", label: "the first version" },
+  { id: "fs_results_1", beat: "results", follow_up: false, text: "What has changed since? If you have numbers, I would love to hear them.", label: "what has changed" },
+  { id: "fs_results_2", beat: "results", follow_up: true, text: "Is there a moment where it became real?", label: "a moment where it became real" },
+  { id: "fs_reflection_1", beat: "reflection", follow_up: false, text: "What is next for {company}, and what would you tell someone about to do what you did?", label: "what is next and what they would tell someone else" },
+  { id: "fs_reflection_2", beat: "reflection", follow_up: true, text: "What do you know now that you wish you had known at the start?", label: "what they wish they had known" },
+];
+
+/**
  * Beat lexicon. Stemmed on load so the angle's tokens meet it after tokenize().
  * A word can belong to more than one beat; "hours" is both a cost and a result.
  */
@@ -188,11 +208,13 @@ function fill(template: string, brief: Pick<Brief, "subject" | "client" | "topic
 export function buildQuestionPlan(
   brief: Pick<Brief, "subject" | "client" | "topic">,
   emphasis: Record<Beat, number>,
+  genre: Genre = "customer_case_study",
 ): PlannedQuestion[] {
   const high = new Set(highPriorityBeats(emphasis));
+  const bank = genre === "founder_story" ? FOUNDER_STORY_BANK : CASE_STUDY_BANK;
   const plan: PlannedQuestion[] = [];
   for (const beat of BEAT_ORDER) {
-    for (const q of CASE_STUDY_BANK) {
+    for (const q of bank) {
       if (q.beat !== beat) continue;
       if (q.follow_up && !high.has(beat)) continue;
       plan.push({

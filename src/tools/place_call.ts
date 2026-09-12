@@ -33,10 +33,7 @@ export function register(server: McpServer): void {
     {
       title: "Place the interview call (phone path, step 1 of 2)",
       description:
-        "Places one real outbound call to the brief's subject through the ElevenLabs agent over Twilio. " +
-        "Refused unless a human approval for this exact person and number is on file. The agent opens by stating it is an AI and asking " +
-        "permission to record. Returns at once with the conversation id; call fetch_transcript to wait for the transcript. " +
-        "Requires ELEVENLABS_API_KEY, ELEVENLABS_AGENT_ID and ELEVENLABS_PHONE_NUMBER_ID in the server's environment.",
+        "Call this when the user wants the person actually phoned and approve_contact is on file; pass confirm_dial: true only after the user has said to place the call. It dials the subject through the interviewing agent, which opens by saying it is an AI and asking permission to record, and it returns at once with a conversation id. When it returns, tell the user the phone is ringing on the subject's side and that you will wait for the interview to finish, then call fetch_transcript without asking anything further.",
       inputSchema,
     },
     async (input) => {

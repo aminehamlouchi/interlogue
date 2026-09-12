@@ -16,7 +16,7 @@ export function register(server: McpServer): void {
     {
       title: "Discover contacts (not in this build)",
       description:
-        "Cut-list stub. Automated contact discovery is not implemented and will not find, suggest or look up anyone. Explains what to do instead.",
+        "Do not call this to find anyone; it cannot. Automated contact discovery is not part of InterLogue: the user names the person, and a human approves the number. If the user asks you to find someone to interview, explain that and ask who they have in mind.",
       inputSchema: { query: z.string().describe("Ignored. Kept so the tool has a stable shape.") },
     },
     async () => reply([TEXT]),

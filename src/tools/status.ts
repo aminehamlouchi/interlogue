@@ -17,8 +17,7 @@ export function register(server: McpServer): void {
     {
       title: "Where is this brief in the spine?",
       description:
-        "Reports which of brief, human approval, transcript and generated pieces exist for a brief_id, and names the next tool to call. " +
-        "Spine: brief -> approve_contact -> run_interview -> generate_piece -> check_citations.",
+        "Call this when the user asks where things stand, or when you are unsure which step comes next for a brief. It reports whether the brief, the approval, the transcript and any pieces exist, and names the next step. When it returns, tell the user in one line where the interview stands and what happens next.",
       inputSchema,
     },
     async (input) => {

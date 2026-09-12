@@ -21,10 +21,7 @@ export function register(server: McpServer): void {
     {
       title: "Fallback writer: generate the piece deterministically",
       description:
-        "FALLBACK writer, used when no host is writing (for example `npm run spine`). Inside Claude, prefer draft_piece then check_citations, " +
-        "where the host writes the prose. This tool assembles the customer case study deterministically from the saved transcript: the story first, pull quotes second, per-question answers third. " +
-        "Every quote is a verbatim span of a subject turn and carries its transcript timestamp; the piece is saved only if the citation check passes. " +
-        "Regenerate any time; the transcript is never edited to fit a piece. Next step: check_citations.",
+        "Do not call this when you can write: use draft_piece and write the piece yourself. This is the no-host fallback writer for the judge's one-command run; it assembles a mechanical piece from the transcript and publishes it only if the citation check passes.",
       inputSchema,
     },
     async (input) => {

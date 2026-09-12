@@ -59,7 +59,7 @@ export function buildPacket(brief: Brief, transcript: Transcript, opts: PacketOp
   out.push("");
   out.push("## The assignment");
   out.push(`brief_id: ${brief.brief_id}`);
-  out.push(`Genre: customer case study`);
+  out.push(`Genre: ${brief.genre === "founder_story" ? "founder story (the subject talks about what they built)" : "customer case study"}`);
   out.push(`Subject: ${brief.subject.name}, ${brief.subject.role}, ${brief.subject.company}`);
   out.push(`Client: ${brief.client.company} (product: ${brief.client.product})`);
   out.push(`Topic: ${brief.topic}`);
@@ -72,8 +72,8 @@ export function buildPacket(brief: Brief, transcript: Transcript, opts: PacketOp
   for (const q of brief.question_plan) out.push(`- [${q.beat}, ${q.priority}${q.follow_up ? ", follow-up" : ""}] ${q.text}`);
   out.push("");
   if (opts.thin) {
-    out.push("## Thin interview notice");
-    out.push("This interview graded below the story threshold and a human asked for the packet anyway.");
+    out.push("## Thin interview notice (advice, not a block)");
+    out.push("This interview graded below the story threshold. Write the piece anyway, keep it as short as the material, and say in the headline that the interview was brief. If the user wants more, the fix is a second interview asking the unanswered beats first.");
     for (const r of opts.thin.reasons) out.push(`- ${r}`);
     out.push(`Beats without a real answer: ${opts.thin.beats_unanswered.join(", ") || "none"}.`);
     out.push("");
@@ -83,7 +83,7 @@ export function buildPacket(brief: Brief, transcript: Transcript, opts: PacketOp
   if (opts.thin) {
     out.push("");
     out.push(
-      "8. CONTRACT ADDENDUM FOR A THIN INTERVIEW. The headline must say the interview was brief: it must contain the word \"brief\" or \"short\" together with \"interview\", \"call\" or \"conversation\", for example ending with \": a brief interview\". check_citations enforces this. Write only what was said; do not pad a short call into a long story.",
+      "8. CONTRACT ADDENDUM FOR A THIN INTERVIEW. This interview was short. The headline must say so: it must contain the word \"brief\" or \"short\" together with \"interview\", \"call\" or \"conversation\", for example ending with \": a brief interview\". check_citations enforces this. Write only what was said; a short call makes a short piece, and that is fine.",
     );
   }
   out.push("");

@@ -9,7 +9,7 @@
  */
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { detectConsent } from "../consent.js";
+import { detectConsent, looksLikeVoicemail } from "../consent.js";
 import { ElevenLabsError, getConversation, getPhoneConfig, type ConversationDetails } from "../phone/elevenlabs.js";
 import { waitForConversation } from "../phone/waitForConversation.js";
 import { normalizeTranscript } from "../phone/normalize.js";
@@ -146,6 +146,14 @@ export function register(server: McpServer): void {
       }
       const turns: Turn[] = rawTurns.map((t, index) => ({ index, speaker: t.speaker, time_in_call_secs: t.time_in_call_secs, timestamp: formatTimestamp(t.time_in_call_secs), text: t.text }));
 
+      if (looksLikeVoicemail(turns)) {
+        await saveCall({ ...call, status: "failed", last_error: "reached voicemail", call_duration_secs: meta.call_duration_secs, cost_credits: meta.cost ?? null, cost_usd: meta.cost_fiat ?? null });
+        return refuse([
+          "NO ANSWER: the call reached voicemail, not the person. Nothing was stored.",
+          `conversation_id: ${call.conversation_id}`,
+          "Tell the user the subject did not pick up, and offer to call again when they can answer. A new brief is needed for the next call.",
+        ]);
+      }
       const consent = detectConsent(turns);
       const opening = turns.slice(0, 4).map((t) => `  [${t.timestamp}] ${t.speaker}: ${t.text}`);
       const meta = details.metadata ?? {};

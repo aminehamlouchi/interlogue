@@ -117,3 +117,11 @@ test("the fixture opening still reads as full consent with no notice", () => {
   assert.equal(c.refused, false);
   assert.equal(c.notice, undefined);
 });
+
+test("a voicemail greeting is recognised and is not consent", async () => {
+  const { looksLikeVoicemail } = await import("../src/consent.js");
+  const vm = turns([["agent", 0, OPEN], ["subject", 4, "The person you're trying to reach is not available. At the tone, please record your message."]]);
+  assert.equal(looksLikeVoicemail(vm), true);
+  assert.equal(looksLikeVoicemail(turns([["agent", 0, OPEN], ["subject", 5, "Hello?"], ["subject", 8, "Sure, go ahead."]])), false);
+  assert.equal(looksLikeVoicemail(turns([["agent", 0, OPEN], ["subject", 5, "I'll see if this person is available."]])), false);
+});

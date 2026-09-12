@@ -112,3 +112,13 @@ export function detectConsent(turns: Turn[]): ConsentEvidence {
     ...(notice ? { notice } : {}),
   };
 }
+
+/** A voicemail greeting or an automated announcement, not a person. */
+const VOICEMAIL_RE =
+  /\b(not available|is unavailable|leave (a|your) (brief )?message|record your message|after the tone|at the tone|voice ?mail|mailbox|cannot take your call|can'?t take your call|please leave|has been forwarded|is not in service|the number you (have )?dialed)\b/i;
+
+/** True when the opening subject turns read as a voicemail system rather than a person. */
+export function looksLikeVoicemail(turns: Turn[]): boolean {
+  const subject = turns.filter((t) => t.speaker === "subject").slice(0, 2);
+  return subject.some((t) => VOICEMAIL_RE.test(normalizeForMatch(t.text)));
+}

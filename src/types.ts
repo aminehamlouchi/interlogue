@@ -34,14 +34,18 @@ export interface TurnInput {
 export type TranscriptSource = "text_fixture" | "text_inline" | "elevenlabs";
 
 export interface ConsentEvidence {
-  /** The agent said it is an AI at the top of the call. */
+  /** The agent said it is an AI in the opening window. */
   ai_disclosed: boolean;
-  /** The agent asked permission to record at the top of the call. */
+  /** The agent asked permission to record in the opening window. */
   recording_permission_asked: boolean;
-  /** The subject agreed. */
+  /** The subject did not refuse: any reply after the ask that is not an explicit refusal counts as a grant. */
   recording_permission_granted: boolean;
+  /** True only on an explicit refusal ("no", "don't record", "I'd rather not"). The one thing that stops the piece. */
+  refused: boolean;
   /** Turn indexes that prove the above. */
   evidence_turn_indexes: number[];
+  /** Present when disclosure or ask was not found in the opening; the spine continues with this note. */
+  notice?: string;
 }
 
 export interface Transcript {

@@ -45,7 +45,7 @@ function loadFixture(): { brief: Brief; transcript: Transcript } {
     subject_name: b.subject_name,
     started_at: new Date().toISOString(),
     turns,
-    consent: { ai_disclosed: true, recording_permission_asked: true, recording_permission_granted: true, evidence_turn_indexes: [0, 1] },
+    consent: { ai_disclosed: true, recording_permission_asked: true, recording_permission_granted: true, refused: false, evidence_turn_indexes: [0, 1] },
   };
   return { brief, transcript };
 }

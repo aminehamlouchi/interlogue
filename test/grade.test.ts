@@ -27,7 +27,7 @@ function fixtureCase(): { brief: Brief; transcript: Transcript } {
   const emphasis = emphasisFromAngle(b.angle);
   const brief: Brief = { brief_id: "brf_fixture", created_at: new Date().toISOString(), genre: "customer_case_study", ...core, angle: b.angle, content_needed: b.content_needed, emphasis, question_plan: buildQuestionPlan(core, emphasis) };
   const turns = (t.turns as TurnInput[]).map((x, index) => ({ index, speaker: x.speaker, time_in_call_secs: x.time_in_call_secs, timestamp: formatTimestamp(x.time_in_call_secs), text: x.text }));
-  const transcript: Transcript = { transcript_id: "trn_fixture", brief_id: "brf_fixture", source: "text_fixture", subject_name: b.subject_name, started_at: new Date().toISOString(), turns, consent: { ai_disclosed: true, recording_permission_asked: true, recording_permission_granted: true, evidence_turn_indexes: [0, 1] } };
+  const transcript: Transcript = { transcript_id: "trn_fixture", brief_id: "brf_fixture", source: "text_fixture", subject_name: b.subject_name, started_at: new Date().toISOString(), turns, consent: { ai_disclosed: true, recording_permission_asked: true, recording_permission_granted: true, refused: false, evidence_turn_indexes: [0, 1] } };
   return { brief, transcript };
 }
 

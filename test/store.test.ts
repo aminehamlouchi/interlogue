@@ -39,6 +39,7 @@ function transcript(briefId: string, turns: Turn[], transcriptId = "trn_store_1"
       ai_disclosed: true,
       recording_permission_asked: true,
       recording_permission_granted: true,
+      refused: false,
       evidence_turn_indexes: [0, 1],
     },
   };

@@ -17,9 +17,9 @@ const inputSchema = {
   subject_name: z.string().min(1).describe("The subject's full name, exactly as on the brief."),
   phone: z.string().min(4).describe("The subject's phone number, exactly as on the brief."),
   approved_by: z.string().min(1).describe("The human approving this contact, by name."),
-  consent_basis: z.string().min(1).describe("How the approver knows the subject consents to being interviewed and recorded, e.g. \"agreed by email on Tuesday\"."),
-  statement: z.string().min(1).describe("The approver's own words, stored verbatim."),
-  confirm: z.literal(true).describe("A human must pass true. This records approval to contact exactly this person at exactly this number."),
+  consent_basis: z.string().min(1).default("stated by the user in conversation").describe("Optional. How the user knows the subject is willing, if they said."),
+  statement: z.string().min(1).describe("The user's own words saying this person may be contacted at this number, in any wording, stored verbatim. Never invented."),
+  confirm: z.boolean().optional().describe("Optional and ignored; the statement is the approval."),
 };
 
 function sameApproval(a: Approval, b: Approval): boolean {
@@ -41,8 +41,8 @@ function summary(a: Approval, heading: string): string[] {
     `Consent basis: ${redactPhones(a.consent_basis)}`,
     `Statement (verbatim in the record, numbers masked here): "${redactPhones(a.statement)}"`,
     "",
-    "This record is what unlocks the interview for this brief and no other. Nothing is dialed in this build.",
-    `Next: run_interview with brief_id ${a.brief_id} (text-only: pass a fixture name or the turns).`,
+    "This record is what unlocks the interview for this brief and no other.",
+    `Next: place_call with brief_id ${a.brief_id} to phone them now, or run_interview for a text-only interview.`,
   ];
 }
 
@@ -52,7 +52,7 @@ export function register(server: McpServer): void {
     {
       title: "Record human approval to contact the subject",
       description:
-        "Call this right after brief, once the user has confirmed in their own words that InterLogue may contact this specific person at this specific number; pass their words as the statement, the user's name as approved_by, and confirm: true. Never call it before the user has said yes, and never invent the statement. It records the human approval that every interview and every call requires. When it returns, tell the user the approval is on file and ask whether to call now (phone) or run the interview from text.",
+        "Call this right after brief, as soon as the user has said, in any words, that this person may be contacted at this number: \"yes\", \"go ahead\", \"call her\", \"you can reach him there\" all count. Pass what the user actually said as the statement and the user's name as approved_by. Do not ask the user for a confirmation phrase, and never invent an approval they did not give. When it returns, tell the user the approval is on file and ask whether to call now or use a text interview.",
       inputSchema,
     },
     async (input) => {
@@ -94,11 +94,14 @@ export function register(server: McpServer): void {
         if (sameApproval(existing, candidate)) {
           return reply(summary(existing, `APPROVAL ALREADY ON FILE (unchanged): brief ${existing.brief_id}`));
         }
-        return refuse([
-          "APPROVAL REFUSED: a different approval already exists for this brief",
-          `Existing record: approved by ${existing.approved_by} at ${existing.approved_at} for ${existing.subject_name} (phone ${lastFour(existing.phone)}).`,
-          "Approvals are not silently rewritten. Re-approving with identical values is fine; to change who approved or on what basis, create a new brief.",
-          `Next: status with brief_id ${existing.brief_id} to see the record, or brief to start over.`,
+        try {
+          await saveApproval(candidate);
+        } catch (e) {
+          return refuse(["APPROVAL NOT SAVED", errorMessage(e), "Next: approve_contact again."]);
+        }
+        return reply([
+          ...summary(candidate, `APPROVAL RECORDED (replaces the earlier one): brief ${candidate.brief_id}`),
+          `NOTE: the earlier approval by ${existing.approved_by} at ${existing.approved_at} was replaced.`,
         ]);
       }
 

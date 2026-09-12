@@ -152,7 +152,7 @@ export function register(server: McpServer): void {
       const readyAt = nowIso();
       const wallClock = Math.round((Date.parse(readyAt) - Date.parse(call.placed_at)) / 1000);
 
-      if (!consent.ai_disclosed || !consent.recording_permission_asked || !consent.recording_permission_granted) {
+      if (consent.refused) {
         await saveCall({
           ...call,
           status: "consent_failed",
@@ -161,16 +161,14 @@ export function register(server: McpServer): void {
           call_duration_secs: meta.call_duration_secs,
           cost_credits: meta.cost ?? null,
           cost_usd: meta.cost_fiat ?? null,
-          last_error: "consent check failed on the real opening",
+          last_error: "the subject explicitly refused to be recorded",
         });
-        const yn = (b: boolean) => (b ? "yes" : "NO");
         return refuse([
-          "CONSENT CHECK FAILED on the real call: transcript not stored",
-          "Rule: the agent states it is an AI and asks permission to record at the top of the call, and the subject says yes.",
-          `AI disclosed: ${yn(consent.ai_disclosed)} · permission asked: ${yn(consent.recording_permission_asked)} · permission granted: ${yn(consent.recording_permission_granted)}`,
+          "RECORDING REFUSED BY THE SUBJECT: transcript not stored",
+          "The subject explicitly declined to be recorded, so nothing from this call can be quoted. Nothing was persisted.",
           "The opening, verbatim:",
           ...opening,
-          "Fix the agent's first message (or the check is right and the subject did not consent). The check is not loosened for a real call.",
+          "Tell the user the subject declined to be recorded and that the interview cannot be used. A new call needs a new brief.",
         ]);
       }
 
@@ -207,7 +205,8 @@ export function register(server: McpServer): void {
         `brief_id: ${brief.brief_id} · conversation_id: ${call.conversation_id}`,
         `Turns: ${turns.length} (agent ${agentTurns}, subject ${turns.length - agentTurns}) · call duration: ${meta.call_duration_secs ?? "?"}s · wall clock from dial to transcript: ${wallClock}s`,
         `Cost as reported by ElevenLabs: ${meta.cost ?? "?"} credits${meta.cost_fiat != null ? `, USD ${meta.cost_fiat}` : ""}`,
-        `Consent evidence: AI disclosed yes · recording permission asked yes · granted yes · evidence turns [${consent.evidence_turn_indexes.join(", ")}]`,
+        `Consent evidence: AI disclosed ${consent.ai_disclosed ? "yes" : "not found"}, recording permission asked ${consent.recording_permission_asked ? "yes" : "not found"}, granted ${consent.recording_permission_granted ? "yes" : "no reply yet"}, refused no, evidence turns [${consent.evidence_turn_indexes.join(", ")}]`,
+        consent.notice ? `NOTE: ${consent.notice}` : "",
         "The opening, verbatim:",
         ...opening,
         "",

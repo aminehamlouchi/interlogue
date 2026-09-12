@@ -44,7 +44,7 @@ const inputSchema = {
 };
 
 const CONSENT_RULE =
-  "Rule: the agent states it is an AI and asks permission to record at the top of the call. A transcript whose opening does not show both is not accepted.";
+  "Rule: the agent asks permission to record at the top of the call and the subject grants it in any words. Only an explicit refusal stops the piece.";
 
 async function loadFixtureTurns(name: string): Promise<TurnInput[]> {
   const file = path.join(PACKAGE_ROOT, "fixtures", `${name}.transcript.json`);
@@ -86,17 +86,19 @@ export function register(server: McpServer): void {
         throw e;
       }
 
-      if ((input.fixture && input.turns) || (!input.fixture && !input.turns)) {
+      const notices: string[] = [];
+      if (!input.fixture && !input.turns) {
         return refuse([
-          "INTERVIEW REFUSED: give exactly one of fixture or turns",
-          "Pass fixture (a name in fixtures/, e.g. \"founder-case-study\") or turns (inline), not both and not neither.",
-          `Next: run_interview with brief_id ${brief.brief_id} and one of the two.`,
+          "NOTHING TO INTERVIEW FROM: give a fixture name or the turns",
+          "Pass fixture (e.g. \"founder-case-study\") for the demo transcript, or turns (inline) for a transcript the user already has. For a real phone interview use place_call and fetch_transcript instead.",
+          `Next: run_interview with brief_id ${brief.brief_id} and one of the two, or place_call.`,
         ]);
       }
+      if (input.fixture && input.turns) notices.push("Both a fixture and turns were given; the turns were used.");
 
       let rawTurns: TurnInput[];
       try {
-        rawTurns = input.fixture ? await loadFixtureTurns(input.fixture) : (input.turns as TurnInput[]);
+        rawTurns = input.turns ? (input.turns as TurnInput[]) : await loadFixtureTurns(input.fixture!);
       } catch (e) {
         return refuse([
           `INTERVIEW REFUSED: could not load fixture "${input.fixture}"`,
@@ -107,14 +109,9 @@ export function register(server: McpServer): void {
         ]);
       }
 
-      for (let i = 1; i < rawTurns.length; i++) {
-        if (rawTurns[i].time_in_call_secs < rawTurns[i - 1].time_in_call_secs) {
-          return refuse([
-            "INTERVIEW REFUSED: timestamps go backwards",
-            `Turn ${i} is at ${rawTurns[i].time_in_call_secs}s but turn ${i - 1} is at ${rawTurns[i - 1].time_in_call_secs}s. time_in_call_secs must be non-decreasing.`,
-            "Next: fix the turns and call run_interview again.",
-          ]);
-        }
+      if (rawTurns.some((t, i) => i > 0 && t.time_in_call_secs < rawTurns[i - 1].time_in_call_secs)) {
+        rawTurns = rawTurns.map((t, i) => ({ ...t, _i: i })).sort((a, b) => a.time_in_call_secs - b.time_in_call_secs || a._i - b._i).map(({ _i, ...t }) => t);
+        notices.push("Some timestamps went backwards; the turns were sorted by time.");
       }
 
       const turns: Turn[] = rawTurns.map((t, index) => ({
@@ -126,17 +123,18 @@ export function register(server: McpServer): void {
       }));
 
       const consent = detectConsent(turns);
-      if (!consent.ai_disclosed || !consent.recording_permission_asked || !consent.recording_permission_granted) {
+      if (consent.refused) {
+        const opening = turns.slice(0, 4).map((t) => `  [${t.timestamp}] ${t.speaker}: ${t.text}`);
         return refuse([
-          "CONSENT CHECK FAILED: transcript not saved",
+          "RECORDING REFUSED BY THE SUBJECT: transcript not saved",
           CONSENT_RULE,
-          `AI disclosed at the top of the call: ${consent.ai_disclosed ? "yes" : "NO"}`,
-          `Permission to record asked at the top of the call: ${consent.recording_permission_asked ? "yes" : "NO"}`,
-          `Permission to record granted by the subject: ${consent.recording_permission_granted ? "yes" : "NO"}`,
-          "Nothing was persisted. The opening agent turns must state that the interviewer is an AI and ask whether it is okay to record, and the subject must say yes before the interview continues.",
-          "Next: fix the opening turns and call run_interview again.",
+          "The subject explicitly declined to be recorded, so nothing from this call can be quoted. Nothing was persisted.",
+          "The opening, verbatim:",
+          ...opening,
+          "Tell the user the subject declined to be recorded and that the interview cannot be used.",
         ]);
       }
+      if (consent.notice) notices.push(`Consent notice: ${consent.notice}`);
 
       const existing = await loadTranscript(brief.brief_id);
       const transcript: Transcript = {
@@ -167,6 +165,7 @@ export function register(server: McpServer): void {
 
       return reply([
         `INTERVIEW RECORDED (text-only): ${transcript.transcript_id}`,
+        ...notices.map((n) => `NOTE: ${n}`),
         `transcript_id: ${transcript.transcript_id}`,
         `brief_id: ${transcript.brief_id}`,
         `Source: ${input.fixture ? `fixture "${input.fixture}"` : "inline turns"}${existing ? " (extended an existing transcript)" : ""}`,

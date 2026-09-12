@@ -51,3 +51,17 @@ test("the founder-story plan keeps the seven beats and asks about what they buil
   assert.ok(plan.some((q) => /What did you build/.test(q.text)));
   assert.ok(plan.every((q) => !/Before .* how did/.test(q.text)));
 });
+
+test("a sentence that says how many questions cuts the plan to the beats the angle weights most, context first", async () => {
+  const { questionLimitFrom } = await import("../src/questionBank.js");
+  assert.equal(questionLimitFrom("about the hackathon build, three questions, and call him now"), 3);
+  assert.equal(questionLimitFrom("2 questions only"), 2);
+  assert.equal(questionLimitFrom("no count here"), undefined);
+  const core = { subject: { name: "A", phone: "+15025550100", role: "founder", company: "Co" }, client: { company: "X", product: "X" }, topic: "results" };
+  const emphasis = emphasisFromAngle("what changed and the results since");
+  const plan = buildQuestionPlan(core, emphasis, "customer_case_study", 3);
+  assert.equal(plan.length, 3);
+  assert.equal(plan[0].beat, "context");
+  assert.ok(plan.some((q) => q.beat === "results"));
+  assert.ok(plan.every((q) => !q.follow_up));
+});

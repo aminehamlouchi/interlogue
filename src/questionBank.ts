@@ -209,6 +209,7 @@ export function buildQuestionPlan(
   brief: Pick<Brief, "subject" | "client" | "topic">,
   emphasis: Record<Beat, number>,
   genre: Genre = "customer_case_study",
+  limit?: number,
 ): PlannedQuestion[] {
   const high = new Set(highPriorityBeats(emphasis));
   const bank = genre === "founder_story" ? FOUNDER_STORY_BANK : CASE_STUDY_BANK;
@@ -227,7 +228,26 @@ export function buildQuestionPlan(
       });
     }
   }
-  return plan;
+  if (limit === undefined || limit >= plan.length) return plan;
+  // A short interview: keep the primary questions of the beats the angle weights most,
+  // context first so the subject is introduced, then back in arc order.
+  const primaries = plan.filter((q) => !q.follow_up);
+  const ranked = primaries
+    .map((q, i) => ({ q, i, w: q.beat === "context" ? 2 : emphasis[q.beat] ?? 0 }))
+    .sort((a, b) => b.w - a.w || a.i - b.i)
+    .slice(0, Math.max(1, limit))
+    .sort((a, b) => a.i - b.i)
+    .map((x) => x.q);
+  return ranked;
+}
+
+/** "three questions", "2 questions", "one question" in the user's sentence. */
+export function questionLimitFrom(text: string): number | undefined {
+  const words: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6 };
+  const m = text.match(/\b(\d{1,2}|one|two|three|four|five|six)\s+questions?\b/i);
+  if (!m) return undefined;
+  const n = words[m[1].toLowerCase()] ?? parseInt(m[1], 10);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
 /** Keyword classification of an agent turn when it matches no planned question. */

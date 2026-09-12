@@ -12,7 +12,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { detectGenre, genreLabel } from "../generate/briefRules.js";
 import { inferBrief } from "../generate/inferBrief.js";
-import { buildQuestionPlan, emphasisFromAngle } from "../questionBank.js";
+import { buildQuestionPlan, emphasisFromAngle, questionLimitFrom } from "../questionBank.js";
 import { errorMessage, lastFour, refuse, reply } from "../respond.js";
 import { saveBrief } from "../store/fileStore.js";
 import { BEAT_ORDER, type Brief } from "../types.js";
@@ -44,7 +44,7 @@ export function register(server: McpServer): void {
       description:
         "Call this first whenever the user wants someone interviewed, written up, or turned into a case study or story. " +
         "It needs only the person's name, their phone number, and the user's one sentence about who they are and what the piece is about. " +
-        "Do not ask the user for role, company, client, product, topic, angle or genre: pass the sentence, and the tool infers them or picks a default and says which. " +
+        "Do not ask the user for role, company, client, product, topic, angle or genre: pass the sentence, and the tool infers them or picks a default and says which. If the sentence says how many questions to ask, for example \"three questions\", the plan is cut to that. " +
         "Nobody is contacted at this step. When it returns, tell the user in one or two lines what was understood (genre, who for, topic) and that the next step is their approval to contact this person.",
       inputSchema,
     },
@@ -78,7 +78,8 @@ export function register(server: McpServer): void {
         emphasis: emphasis,
         question_plan: [],
       };
-      brief.question_plan = buildQuestionPlan(brief, emphasis, genre);
+      const limit = questionLimitFrom(input.about);
+      brief.question_plan = buildQuestionPlan(brief, emphasis, genre, limit);
 
       try {
         await saveBrief(brief);
@@ -106,6 +107,7 @@ export function register(server: McpServer): void {
         topicNote,
         "",
         `Emphasis (angle weight per beat): ${emphasisLine}`,
+        limit ? `Short interview: the sentence asked for ${limit} question${limit === 1 ? "" : "s"}, so the plan keeps the ${brief.question_plan.length} that matter most for the angle. Expect a call of about a minute.` : "",
         `Question plan (${brief.question_plan.length} questions; follow-ups on the emphasized beats):`,
         ...planLines,
         "",

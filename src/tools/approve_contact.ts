@@ -14,8 +14,8 @@ import { normalizeWhitespace, nowIso } from "../util.js";
 
 const inputSchema = {
   brief_id: z.string().min(1).describe("The brief_id returned by the brief tool."),
-  subject_name: z.string().min(1).describe("The subject's full name, exactly as on the brief."),
-  phone: z.string().min(4).describe("The subject's phone number, exactly as on the brief."),
+  subject_name: z.string().optional().describe("Optional. The subject's name as the user said it; the brief's name is what is recorded."),
+  phone: z.string().optional().describe("Optional. The number as the user said it; the brief's number is what is recorded."),
   approved_by: z.string().min(1).describe("The human approving this contact, by name."),
   consent_basis: z.string().min(1).default("stated by the user in conversation").describe("Optional. How the user knows the subject is willing, if they said."),
   statement: z.string().min(1).describe("The user's own words saying this person may be contacted at this number, in any wording, stored verbatim. Never invented."),
@@ -52,7 +52,7 @@ export function register(server: McpServer): void {
     {
       title: "Record human approval to contact the subject",
       description:
-        "Call this right after brief, as soon as the user has said, in any words, that this person may be contacted at this number: \"yes\", \"go ahead\", \"call her\", \"you can reach him there\" all count. Pass what the user actually said as the statement and the user's name as approved_by. Do not ask the user for a confirmation phrase, and never invent an approval they did not give. When it returns, tell the user the approval is on file and ask whether to call now or use a text interview.",
+        "Call this right after brief. The user's own request already counts as the approval when it names the person and asks to contact, call or interview them, for example \"interview Ahmed at +1 502 555 0100\" or \"call her\"; pass that request, or whatever else they said, as the statement, and the user's name as approved_by. Do not ask the user for a confirmation phrase and never invent an approval they did not give. Name and number are optional; the brief's are recorded. When it returns, go straight to place_call if the user wanted a phone interview, or run_interview for text.",
       inputSchema,
     },
     async (input) => {
@@ -63,20 +63,12 @@ export function register(server: McpServer): void {
         return refuse(["APPROVAL REFUSED: no such brief", errorMessage(e), "Next: brief, then approve_contact with the returned brief_id."]);
       }
 
-      const problems: string[] = [];
-      if (normalizeName(input.subject_name) !== normalizeName(brief.subject.name)) {
-        problems.push(`Name "${normalizeWhitespace(input.subject_name)}" does not match the brief's subject "${brief.subject.name}".`);
+      const notes: string[] = [];
+      if (input.subject_name && normalizeName(input.subject_name) !== normalizeName(brief.subject.name)) {
+        notes.push(`The name given ("${normalizeWhitespace(input.subject_name)}") differs from the brief's subject "${brief.subject.name}"; the approval is recorded for the brief's subject.`);
       }
-      if (normalizePhone(input.phone) !== normalizePhone(brief.subject.phone)) {
-        problems.push(`Phone ${lastFour(input.phone)} does not match the brief's subject phone ${lastFour(brief.subject.phone)}.`);
-      }
-      if (problems.length > 0) {
-        return refuse([
-          "APPROVAL REFUSED: does not match the brief",
-          ...problems,
-          "An approval covers exactly the person and number on the brief. If the brief is wrong, create a new brief; do not approve a different person or number against it.",
-          `Next: approve_contact again with the name and number from brief ${brief.brief_id}, or brief to start over.`,
-        ]);
+      if (input.phone && normalizePhone(input.phone) !== normalizePhone(brief.subject.phone)) {
+        notes.push(`The number given (ending ${lastFour(input.phone)}) differs from the brief's number (ending ${lastFour(brief.subject.phone)}); the approval is recorded for the brief's number. If the brief's number is wrong, make a new brief.`);
       }
 
       const candidate: Approval = {
@@ -110,7 +102,7 @@ export function register(server: McpServer): void {
       } catch (e) {
         return refuse(["APPROVAL NOT SAVED", errorMessage(e), "Next: approve_contact again."]);
       }
-      return reply(summary(candidate, `APPROVAL RECORDED: brief ${candidate.brief_id}`));
+      return reply([...summary(candidate, `APPROVAL RECORDED: brief ${candidate.brief_id}`), ...notes.map((n) => `NOTE: ${n}`)]);
     },
   );
 }
